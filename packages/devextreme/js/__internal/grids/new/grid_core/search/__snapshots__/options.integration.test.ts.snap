@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Options searchPanel.highlightCaseSensitive = false 1`] = `
 <div
@@ -20,7 +20,7 @@ exports[`Options searchPanel.highlightCaseSensitive = false 1`] = `
       John
     </span>
     <span>
-       Doe 
+       Doe
     </span>
     <span
       class="dx-cardview-field-value__text-part--highlighted"
@@ -46,7 +46,7 @@ exports[`Options searchPanel.highlightCaseSensitive = true 1`] = `
     class="dx-cardview-field-value dx-cardview-field-value--text-align-left"
   >
     <span>
-      John Doe 
+      John Doe
     </span>
     <span
       class="dx-cardview-field-value__text-part--highlighted"

@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Options disabled when it is 'false' Toolbar should not be disabled 1`] = `
 <div>
@@ -55,7 +55,7 @@ exports[`Options disabled when it is 'true' Toolbar should be disabled 1`] = `
 
 exports[`Options items when these are not set Toolbar should be hidden 1`] = `
 <div>
-  
+
 </div>
 `;
 
@@ -137,7 +137,7 @@ exports[`Options items when these are set Toolbar should be visible 1`] = `
 
 exports[`Options visilbe when changing it to 'false' at runtime Toolbar should be hidden 1`] = `
 <div>
-  
+
 </div>
 `;
 
@@ -169,7 +169,7 @@ exports[`Options visilbe when changing it to 'true' at runtime Toolbar should be
 
 exports[`Options visilbe when it is 'false' Toolbar should be hidden 1`] = `
 <div>
-  
+
 </div>
 `;
 

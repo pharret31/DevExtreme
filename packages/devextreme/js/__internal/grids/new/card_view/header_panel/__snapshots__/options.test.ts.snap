@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ColumnProperties headerItemCssClass should override content of headerPanel item 1`] = `
 <div
@@ -68,7 +68,7 @@ exports[`ColumnProperties headerItemCssClass should override content of headerPa
           </div>
         </div>
       </div>
-      
+
       <div
         class="dx-cardview-dropzone"
       >
@@ -149,7 +149,7 @@ exports[`Options headerPanel visible when it is false should hide headerPanel 1`
 <div
   class="test-container"
 >
-  
+
 </div>
 `;
 
@@ -221,7 +221,7 @@ exports[`Options headerPanel visible when it is true should show headerPanel 1`]
           </div>
         </div>
       </div>
-      
+
       <div
         class="dx-cardview-dropzone"
       >

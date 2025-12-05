@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Content View ValueText should add title attribute 1`] = `
 <div>
@@ -17,7 +17,7 @@ exports[`Content View ValueText should render highlighted text if passed 1`] = `
     class="dx-cardview-field-value dx-cardview-field-value--text-align-center"
   >
     <span>
-      USUAL_PART 
+      USUAL_PART
     </span>
     <span
       class="dx-cardview-field-value__text-part--highlighted"

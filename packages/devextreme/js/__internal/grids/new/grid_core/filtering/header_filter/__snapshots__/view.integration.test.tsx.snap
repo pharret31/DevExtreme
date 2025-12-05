@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`HeaderFilter View integration should render popup with list by default 1`] = `
 <div
@@ -112,7 +112,7 @@ exports[`HeaderFilter View integration should render popup with list by default 
                       <span
                         class="dx-checkbox-icon"
                       />
-                      
+
                     </div>
                   </div>
                   <div
@@ -153,7 +153,7 @@ exports[`HeaderFilter View integration should render popup with list by default 
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -190,7 +190,7 @@ exports[`HeaderFilter View integration should render popup with list by default 
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -227,7 +227,7 @@ exports[`HeaderFilter View integration should render popup with list by default 
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -264,7 +264,7 @@ exports[`HeaderFilter View integration should render popup with list by default 
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -301,7 +301,7 @@ exports[`HeaderFilter View integration should render popup with list by default 
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -590,7 +590,7 @@ exports[`HeaderFilter View integration should render popup with tree list if dat
                       <span
                         class="dx-checkbox-icon"
                       />
-                      
+
                     </div>
                   </div>
                   <div
@@ -631,7 +631,7 @@ exports[`HeaderFilter View integration should render popup with tree list if dat
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -668,7 +668,7 @@ exports[`HeaderFilter View integration should render popup with tree list if dat
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -705,7 +705,7 @@ exports[`HeaderFilter View integration should render popup with tree list if dat
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -742,7 +742,7 @@ exports[`HeaderFilter View integration should render popup with tree list if dat
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>
@@ -779,7 +779,7 @@ exports[`HeaderFilter View integration should render popup with tree list if dat
                           <span
                             class="dx-checkbox-icon"
                           />
-                          
+
                         </div>
                       </div>
                     </div>

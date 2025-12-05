@@ -1,8 +1,8 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const gulp = require('gulp');
-const del = require('del');
 const {
     STATE_MANAGER_FOLDER_PATH,
     STATE_MANAGER_INDEX_MODULE_PATH,
@@ -13,20 +13,19 @@ const ctx = require('../context');
 const MODULE_TYPES = ['esm', 'cjs'];
 
 const removeDevelopmentStateManagerModules = (targetPath) => {
-    const patterns = [];
-
     MODULE_TYPES.forEach(type => {
-        patterns.push(`${path.join(targetPath, type, STATE_MANAGER_FOLDER_PATH)}/**`);
-    });
+        const stateManagerPath = path.join(targetPath, type, STATE_MANAGER_FOLDER_PATH);
 
-    MODULE_TYPES.forEach(type => {
-        patterns.push(`!${path.join(targetPath, type, STATE_MANAGER_FOLDER_PATH)}`);
-        patterns.push(`!${path.join(targetPath, type, STATE_MANAGER_INDEX_MODULE_PATH)}`);
-        patterns.push(`!${path.join(targetPath, type, STATE_MANAGER_PROD_FOLDER_PATH)}`);
-        patterns.push(`!${path.join(targetPath, type, STATE_MANAGER_PROD_FOLDER_PATH)}/**`);
+        if (fs.existsSync(stateManagerPath)) {
+            const items = fs.readdirSync(stateManagerPath);
+            items.forEach(item => {
+                const itemPath = path.join(stateManagerPath, item);
+                if (item !== 'prod' && item !== 'index.js') {
+                    fs.rmSync(itemPath, { recursive: true, force: true });
+                }
+            });
+        }
     });
-
-    del.deleteSync(patterns);
 }
 
 const createRemoveDevelopmentStateManagerModulesTask = (targetPath) => (done) => {
