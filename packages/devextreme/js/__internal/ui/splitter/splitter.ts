@@ -1100,9 +1100,10 @@ class Splitter extends CollectionWidgetLiveUpdate<Properties> {
   }
 
   _dimensionChanged(): void {
-    this._updateItemSizes();
-
     this._layout = this._getDefaultLayoutBasedOnSize();
+    this._applyStylesFromLayout(this._layout);
+
+    this._updateItemSizes();
   }
 
   _optionChanged(args: OptionChanged<Properties>): void {
