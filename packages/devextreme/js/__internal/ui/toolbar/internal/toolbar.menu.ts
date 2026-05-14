@@ -19,7 +19,6 @@ import type { OptionChanged } from '@ts/core/widget/types';
 import type { WidgetProperties } from '@ts/core/widget/widget';
 import Widget from '@ts/core/widget/widget';
 import Button from '@ts/ui/button/wrapper';
-import type { ListBase } from '@ts/ui/list/list.base';
 import Popup from '@ts/ui/popup/m_popup';
 import ToolbarMenuList, { TOOLBAR_MENU_ACTION_CLASS } from '@ts/ui/toolbar/internal/toolbar.menu.list';
 import { toggleItemFocusableElementTabIndex } from '@ts/ui/toolbar/toolbar.utils';
@@ -31,6 +30,8 @@ const DROP_DOWN_MENU_LIST_CLASS = 'dx-dropdownmenu-list';
 const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
 const POPUP_BOUNDARY_VERTICAL_OFFSET = 10;
 const POPUP_VERTICAL_OFFSET = 3;
+
+type OpenFocusTarget = 'first' | 'last';
 
 export interface DropDownMenuProperties extends WidgetProperties<DropDownMenu> {
   opened?: boolean;
@@ -51,7 +52,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
   _popup?: Popup;
 
-  _list?: ListBase;
+  _list?: ToolbarMenuList;
 
   _$popup?: dxElementWrapper;
 
@@ -60,6 +61,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
   _itemClickAction?: (e: Partial<ItemClickEvent<ListItem>>) => void;
 
   _buttonClickAction?: (e: ClickEvent) => void;
+
+  _openFocusTarget: OpenFocusTarget = 'first';
 
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _supportedKeys(): Record<string, (e: KeyboardEvent) => boolean | void> {
@@ -271,6 +274,18 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
           this.option('opened', value);
         }
       },
+      onShown: () => {
+        if (this._openFocusTarget === 'last') {
+          this._list?.focusLastItem();
+        } else {
+          this._list?.focusFirstItem();
+        }
+        this._openFocusTarget = 'first';
+      },
+      onHidden: () => {
+        const buttonEl = this._button?.$element().get(0) as HTMLElement | undefined;
+        buttonEl?.focus();
+      },
       container,
       autoResizeEnabled: false,
       height: 'auto',
@@ -304,6 +319,11 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         this.option('opened', false);
       }
     });
+  }
+
+  openWithFocus(focusTarget: OpenFocusTarget = 'first'): void {
+    this._openFocusTarget = focusTarget;
+    this.option('opened', true);
   }
 
   _getMaxHeight(): number {
@@ -352,7 +372,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         this._itemClickHandler(e);
       },
       tabIndex: -1,
-      focusStateEnabled: false,
+      focusStateEnabled: true,
       activeStateEnabled: true,
       onItemRendered,
       _itemAttributes: { role: 'menuitem' },
@@ -363,6 +383,10 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         }
       },
     });
+
+    this._list._onEscapePress = (): void => {
+      this.option('opened', false);
+    };
   }
 
   _popupKeyHandler(e: DxEvent<KeyboardEvent>): void {
