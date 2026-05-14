@@ -1,5 +1,6 @@
 import type { DefaultOptionsRule } from '@js/common';
 import { fx } from '@js/common/core/animation';
+import { keyboard } from '@js/common/core/events/short';
 import registerComponent from '@js/core/component_registrator';
 import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
@@ -7,6 +8,7 @@ import { BindableTemplate } from '@js/core/templates/bindable_template';
 import { each } from '@js/core/utils/iterator';
 import { getHeight, getOuterWidth, getWidth } from '@js/core/utils/size';
 import { isDefined, isPlainObject } from '@js/core/utils/type';
+import type { DxEvent } from '@js/events';
 import {
   current,
   isMaterial,
@@ -15,11 +17,16 @@ import {
   waitWebFont,
 } from '@js/ui/themes';
 import type { Item, Properties } from '@js/ui/toolbar';
+import { getPublicElement } from '@ts/core/m_element';
 import type { OptionChanged } from '@ts/core/widget/types';
+import type { SupportedKeys } from '@ts/core/widget/widget';
 import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
 import { TOOLBAR_CLASS } from './constants';
+import {
+  closeItemWidget, getItemFocusTarget, isItemWidgetOpened, setItemWidgetFocusState,
+} from './toolbar.utils';
 
 export const TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
 const TOOLBAR_CENTER_CLASS = 'dx-toolbar-center';
@@ -68,6 +75,10 @@ class ToolbarBase<
   _$afterSection!: dxElementWrapper;
 
   _waitParentAnimationTimeout?: ReturnType<typeof setTimeout>;
+
+  _keyboardListenerId?: string;
+
+  _captureKeydownHandler?: EventListener;
 
   _getSynchronizableOptionsForCreateComponent(): (keyof TProperties)[] {
     return super._getSynchronizableOptionsForCreateComponent().filter((item) => item !== 'disabled');
@@ -133,6 +144,8 @@ class ToolbarBase<
       grouped: false,
       useFlatButtons: false,
       useDefaultButtons: false,
+      focusStateEnabled: true,
+      loopItemFocus: true,
     };
   }
 
@@ -148,6 +161,354 @@ class ToolbarBase<
         },
       },
     ]);
+  }
+
+  _focusTarget(): dxElementWrapper {
+    return this.$element();
+  }
+
+  _supportedKeys(): SupportedKeys {
+    const keys = super._supportedKeys();
+
+    delete keys.leftArrow;
+    delete keys.rightArrow;
+    delete keys.upArrow;
+    delete keys.downArrow;
+    delete keys.home;
+    delete keys.end;
+
+    const originalEnter = keys.enter;
+    keys.enter = (e: DxEvent<KeyboardEvent>): void => {
+      const target = e.target as HTMLElement;
+
+      if (this._isTextInputTarget(target) || this._isMenuTarget(target)) {
+        return;
+      }
+
+      const { focusedElement } = this.option();
+      const $item = $(focusedElement);
+
+      if ($item.length) {
+        if (this._isOverflowItem($item)) {
+          e.preventDefault();
+          this._openOverflowMenu('first');
+          return;
+        }
+
+        const $textEditor = $item.find('.dx-texteditor-input').first();
+        if ($textEditor.length) {
+          e.preventDefault();
+          ($textEditor.get(0) as HTMLElement).focus();
+          return;
+        }
+
+        const $menu = $item.find('.dx-menu').first();
+        if ($menu.length) {
+          e.preventDefault();
+          const menuInstance = $menu.data('dxMenu');
+          if (menuInstance) {
+            // @ts-expect-error
+            menuInstance.focus();
+          }
+          return;
+        }
+      }
+
+      originalEnter?.call(this, e);
+    };
+
+    return keys;
+  }
+
+  _renderFocusTarget(): void {
+    this._focusTarget().attr('tabIndex', -1);
+  }
+
+  _attachKeyboardEvents(): void {
+    this._detachKeyboardEvents();
+
+    const { focusStateEnabled } = this.option();
+
+    if (focusStateEnabled) {
+      this._keyboardListenerId = keyboard.on(
+        this._keyboardEventBindingTarget(),
+        null,
+        (opts) => this._keyboardHandler(opts),
+      );
+
+      this._attachCaptureArrowHandler();
+    }
+  }
+
+  _detachKeyboardEvents(): void {
+    if (this._keyboardListenerId) {
+      keyboard.off(this._keyboardListenerId);
+      this._keyboardListenerId = undefined;
+    }
+
+    this._detachCaptureArrowHandler();
+  }
+
+  _attachCaptureArrowHandler(): void {
+    this._detachCaptureArrowHandler();
+
+    const element = this.$element().get(0) as HTMLElement;
+    const { rtlEnabled } = this.option();
+
+    this._captureKeydownHandler = (evt: Event): void => {
+      const e = evt as KeyboardEvent;
+      const target = e.target as HTMLElement;
+
+      const isTextInput = this._isTextInputTarget(target);
+      const isMenu = this._isMenuTarget(target);
+
+      if ((isTextInput || isMenu) && e.key !== 'Escape') {
+        return;
+      }
+
+      if (e.key === 'Escape' && (isTextInput || isMenu)) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $item = $(target).closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
+        if ($item.length && closeItemWidget($item)) {
+          return;
+        }
+
+        if ($item.length) {
+          this._focusItemWidget($item);
+        }
+
+        return;
+      }
+
+      const keyToLocation: Record<string, string> = {
+        ArrowRight: rtlEnabled ? 'left' : 'right',
+        ArrowLeft: rtlEnabled ? 'right' : 'left',
+        Home: 'first',
+        End: 'last',
+      };
+
+      const location = keyToLocation[e.key];
+
+      if (!location) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const { focusedElement } = this.option();
+          const $focused = $(focusedElement);
+
+          if ($focused.length && isItemWidgetOpened($focused)) {
+            return;
+          }
+
+          if ($focused.length && this._isOverflowItem($focused)) {
+            e.preventDefault();
+            e.stopPropagation();
+            this._openOverflowMenu(e.key === 'ArrowUp' ? 'last' : 'first');
+          }
+        }
+
+        return;
+      }
+
+      const { focusedElement } = this.option();
+      const $focused = $(focusedElement);
+      if ($focused.length && isItemWidgetOpened($focused)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      this._moveFocus(location);
+    };
+
+    element.addEventListener('keydown', this._captureKeydownHandler, true);
+  }
+
+  _detachCaptureArrowHandler(): void {
+    if (this._captureKeydownHandler) {
+      const element = this.$element().get(0) as HTMLElement;
+      element.removeEventListener('keydown', this._captureKeydownHandler, true);
+      this._captureKeydownHandler = undefined;
+    }
+  }
+
+  _isTextInputTarget(target: HTMLElement): boolean {
+    const tagName = target.tagName.toLowerCase();
+
+    return (tagName === 'input' || tagName === 'textarea')
+      && $(target).closest('.dx-texteditor').length > 0;
+  }
+
+  _isMenuTarget(target: HTMLElement): boolean {
+    return $(target).closest('.dx-menu').length > 0
+      && !$(target).hasClass('dx-toolbar-item');
+  }
+
+  _isOverflowItem($item: dxElementWrapper): boolean {
+    return $item.hasClass('dx-dropdownmenu-button');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _openOverflowMenu(focusTarget: 'first' | 'last'): void {
+    // overridden in Toolbar
+  }
+
+  _getVisibleItems($itemElements?: dxElementWrapper): dxElementWrapper {
+    const $items = $itemElements ?? this._itemContainer().find(`${this._itemSelector()}, .dx-dropdownmenu-button`);
+    return $items.filter(':visible');
+  }
+
+  _getAvailableItems($itemElements?: dxElementWrapper): dxElementWrapper {
+    const $visible = this._getVisibleItems($itemElements);
+    const elements = Array.from($visible.toArray()).filter(
+      (item) => !!getItemFocusTarget($(item))?.length,
+    );
+
+    return $(elements) as unknown as dxElementWrapper;
+  }
+
+  _setFocusedItem($target: dxElementWrapper): void {
+    super._setFocusedItem($target);
+    this._updateRovingTabIndex($target);
+  }
+
+  _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
+    const $items = this._getAvailableItems();
+    let hasActive = false;
+
+    $items.each((_index: number, item: Element): boolean => {
+      const $item = $(item);
+      const $focusTarget = getItemFocusTarget($item);
+
+      if ($focusTarget?.length) {
+        const isActive = !!$activeItem?.length && $item.get(0) === $activeItem.get(0);
+        $focusTarget.attr('tabIndex', isActive ? 0 : -1);
+        if (isActive) {
+          hasActive = true;
+        }
+
+        const $input = $focusTarget.hasClass('dx-texteditor')
+          ? $focusTarget.find('.dx-texteditor-input')
+          : undefined;
+
+        if ($input?.length) {
+          if (!isActive) {
+            $input.attr('tabIndex', -1);
+          }
+
+          const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
+          if (!hasDropDown && !$focusTarget.attr('role')) {
+            const label = $input.attr('aria-label')
+              ?? $input.attr('placeholder')
+              ?? '';
+            // @ts-expect-error ts-error
+            $focusTarget.attr({
+              role: 'textbox',
+              'aria-readonly': 'true',
+              'aria-label': label,
+            });
+          }
+        }
+
+        const $menu = $item.find('.dx-menu');
+        if ($menu.length) {
+          $menu.attr('tabIndex', -1);
+          $menu.find('[tabindex]').attr('tabIndex', -1);
+        }
+      }
+
+      return true;
+    });
+
+    if (!hasActive) {
+      const $first = $items.first();
+      if ($first.length) {
+        const $firstTarget = getItemFocusTarget($first);
+        $firstTarget?.attr('tabIndex', 0);
+      }
+    }
+  }
+
+  _focusInHandler(e: DxEvent): void {
+    if (this._isFocusTarget(e.target)) {
+      super._focusInHandler(e);
+
+      const { focusedElement } = this.option();
+      const $focused = $(focusedElement);
+
+      if ($focused.length) {
+        this._focusItemWidget($focused);
+      } else {
+        const $firstItem = this._getAvailableItems().first();
+        if ($firstItem.length) {
+          this.option('focusedElement', getPublicElement($firstItem));
+          this._focusItemWidget($firstItem);
+        }
+      }
+    } else {
+      const $target = $(e.target);
+      const $item = $target.closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
+
+      if ($item.length && getItemFocusTarget($item)?.length) {
+        this.option('focusedElement', getPublicElement($item));
+      }
+    }
+  }
+
+  _focusItemWidget($item: dxElementWrapper): void {
+    const $focusTarget = getItemFocusTarget($item);
+    if (!$focusTarget?.length) {
+      return;
+    }
+
+    ($focusTarget.get(0) as HTMLElement).focus();
+    setItemWidgetFocusState($item, true);
+  }
+
+  _focusOutHandler(e: DxEvent): void {
+    const { relatedTarget } = e as DxEvent & { relatedTarget: Element };
+    const target = e.target as Element;
+
+    if (relatedTarget && this.$element().get(0).contains(relatedTarget)) {
+      return;
+    }
+
+    if (relatedTarget && $(relatedTarget).closest('.dx-overlay-content').length) {
+      return;
+    }
+
+    if (target && $(target).closest('.dx-overlay-content').length) {
+      return;
+    }
+
+    const { focusedElement } = this.option();
+    const $focused = $(focusedElement);
+    if ($focused.length) {
+      setItemWidgetFocusState($focused, false);
+    }
+
+    super._focusOutHandler(e);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  _moveFocus(location: string, e?: DxEvent<KeyboardEvent>): boolean | undefined | void {
+    const { focusedElement: prevFocusedElement } = this.option();
+    const $prev = $(prevFocusedElement);
+    if ($prev.length) {
+      closeItemWidget($prev);
+      setItemWidgetFocusState($prev, false);
+    }
+
+    const result = super._moveFocus(location, e);
+
+    const { focusedElement } = this.option();
+    const $focused = $(focusedElement);
+    if ($focused.length) {
+      this._focusItemWidget($focused);
+    }
+
+    return result;
   }
 
   _itemContainer(): dxElementWrapper {
@@ -191,6 +552,9 @@ class ToolbarBase<
 
   _postProcessRenderItems(): void {
     this._arrangeItems();
+
+    const { focusedElement } = this.option();
+    this._updateRovingTabIndex($(focusedElement));
   }
 
   _renderToolbar(): void {
@@ -448,6 +812,8 @@ class ToolbarBase<
   _renderEmptyMessage(): void {}
 
   _clean(): void {
+    super._clean();
+
     this._$toolbarItemsContainer.children().empty();
 
     this.$element().empty();

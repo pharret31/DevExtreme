@@ -33,6 +33,12 @@ class Toolbar extends ToolbarBase<Properties> {
     return multiline;
   }
 
+  _openOverflowMenu(focusTarget: 'first' | 'last'): void {
+    if (this._layoutStrategy instanceof SingleLineStrategy && this._layoutStrategy._menu) {
+      this._layoutStrategy._menu.openWithFocus(focusTarget);
+    }
+  }
+
   _dimensionChanged(dimension?: 'height' | 'width'): void {
     if (dimension === 'height') {
       return;

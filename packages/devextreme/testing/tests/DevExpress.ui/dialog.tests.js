@@ -169,7 +169,7 @@ module('dialog', {
     testInActiveWindow('first button in dialog obtained focus on shown', function(assert) {
         alert('Sample message', 'Alert');
 
-        assert.equal($('.dx-dialog-wrapper').find('.dx-state-focused').length, 1, 'button obtained focus');
+        assert.equal($('.dx-dialog-wrapper').find(`.${DIALOG_BUTTON_CLASS}.dx-state-focused`).length, 1, 'button obtained focus');
     });
 
     test('dialog content', function(assert) {
