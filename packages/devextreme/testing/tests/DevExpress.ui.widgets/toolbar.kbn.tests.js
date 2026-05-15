@@ -690,7 +690,7 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
     // The roving tabindex mechanism therefore CAN land on a disabled toolbar item.
     // All AC-1.5.1 tests are SKIPPED; they document unimplemented contract behavior.
 
-    QUnit.skip('ArrowRight skips disabled item', function(assert) {
+    QUnit.test('ArrowRight skips disabled item', function(assert) {
         // BUG: ArrowRight can land on a disabled item because _getAvailableItems()
         // includes disabled items. AC-1.5.1 is not implemented in f0fca41.
 
@@ -716,7 +716,7 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $itemC.get(0), 'ArrowRight skipped disabled item and landed on C');
     });
 
-    QUnit.skip('ArrowLeft skips disabled item', function(assert) {
+    QUnit.test('ArrowLeft skips disabled item', function(assert) {
         // BUG: Same root cause as AC-1.5.1.2.
 
         const toolbar = this.$element.dxToolbar({
@@ -741,7 +741,7 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $itemA.get(0), 'ArrowLeft skipped disabled item and landed on A');
     });
 
-    QUnit.skip('Home skips leading disabled items', function(assert) {
+    QUnit.test('Home skips leading disabled items', function(assert) {
         // BUG: Home can land on a leading disabled item. AC-1.5.1 not implemented in f0fca41.
 
         const toolbar = this.$element.dxToolbar({
@@ -766,7 +766,7 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $itemB.get(0), 'Home skipped leading disabled and landed on B');
     });
 
-    QUnit.skip('End skips trailing disabled items', function(assert) {
+    QUnit.test('End skips trailing disabled items', function(assert) {
         // BUG: End can land on a trailing disabled item. AC-1.5.1 not implemented in f0fca41.
 
         const toolbar = this.$element.dxToolbar({
@@ -791,7 +791,7 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $itemB.get(0), 'End skipped trailing disabled and landed on B');
     });
 
-    QUnit.skip('disabled item never has tabindex=0', function(assert) {
+    QUnit.test('disabled item never has tabindex=0', function(assert) {
         // BUG: Roving tabindex does not exclude disabled items in f0fca41.
         // After navigation a disabled item can receive tabindex=0.
 
@@ -820,7 +820,7 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
 });
 
 QUnit.module('Dynamic item removal', moduleConfig, function() {
-    QUnit.skip('after toolbar.option(items), active item retains tabindex=0', function(assert) {
+    QUnit.test('after toolbar.option(items), active item retains tabindex=0', function(assert) {
         // NOT IMPLEMENTED in f0fca41: no active-item data-reference tracking.
         // After re-render, _postProcessRenderItems uses stale focusedElement (old DOM element)
         // → no match → first item always gets tabindex=0.
@@ -854,7 +854,7 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('inserting item before active does not shift focus', function(assert) {
+    QUnit.test('inserting item before active does not shift focus', function(assert) {
         // NOT IMPLEMENTED in f0fca41: same root cause as 1.5.2.1.
 
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
@@ -884,7 +884,7 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
         assert.strictEqual(parseInt(getItemFocusTarget(findByText('New')).attr('tabindex'), 10), -1, 'New has tabindex=-1');
     });
 
-    QUnit.skip('removing non-active item does not shift focus', function(assert) {
+    QUnit.test('removing non-active item does not shift focus', function(assert) {
 
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
         const itemB = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } };
@@ -914,7 +914,7 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('removing active item moves focus to previous item', function(assert) {
+    QUnit.test('removing active item moves focus to previous item', function(assert) {
         // NOT IMPLEMENTED in f0fca41: after removal first item always gets tabindex=0.
 
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
@@ -945,7 +945,7 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('removing first item moves focus to new first item', function(assert) {
+    QUnit.test('removing first item moves focus to new first item', function(assert) {
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
         const itemB = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } };
         const itemC = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } };
@@ -974,7 +974,7 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('after removal, Arrow keys navigate from new active position', function(assert) {
+    QUnit.test('after removal, Arrow keys navigate from new active position', function(assert) {
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
         const itemB = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } };
         const itemC = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } };
@@ -1010,7 +1010,7 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('navigation order follows DOM order (before, before, after)', function(assert) {
+    QUnit.test('navigation order follows DOM order (before, before, after)', function(assert) {
         // The _getAvailableItems / _getVisibleItems uses DOM traversal via
         // _itemContainer().find(...) which is DOM-order. This likely works,
         // but verifying requires a stable active-item state. Skipped with 1.5.2 suite.
@@ -1203,7 +1203,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('Tab inside menu closes popup and exits toolbar', function(assert) {
+    QUnit.test('Tab inside menu closes popup and exits toolbar', function(assert) {
         // BUG (RC-6): Tab from inside overflow popup moves focus outside toolbar
         // but the popup does NOT close. Known issue per compliance report.
         // The popup remains open after Tab navigation.
@@ -1224,7 +1224,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         assert.strictEqual(menu.option('opened'), false, 'Menu closed after Tab');
     });
 
-    QUnit.skip('after close, overflow button retains tabindex=0; others have tabindex=-1', function(assert) {
+    QUnit.test('after close, overflow button retains tabindex=0; others have tabindex=-1', function(assert) {
         // BUG (RC-2): Multiple tabindex=0 elements exist due to inner widget inputs
         // (SelectBox, TextBox etc.) retaining their own default tabindex=0.
         // The overflow button does have tabindex=0, but uniqueness is not guaranteed.
@@ -1289,7 +1289,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
 });
 
 QUnit.module('Template items (pending)', moduleConfig, function() {
-    QUnit.skip('template item with focusable content is in roving tabindex sequence', function(assert) {
+    QUnit.test('template item with focusable content is in roving tabindex sequence', function(assert) {
         // NOT IMPLEMENTED: getItemFocusTarget does not recognize .dx-item-content as a focus host.
 
         const toolbar = this.$element.dxToolbar({
@@ -1312,7 +1312,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('template item with no focusable content is skipped in navigation', function(assert) {
+    QUnit.test('template item with no focusable content is skipped in navigation', function(assert) {
         // NOT IMPLEMENTED: same root cause.
 
         const toolbar = this.$element.dxToolbar({
@@ -1327,7 +1327,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         assert.strictEqual($available.length, 2, 'Template item with no focusable content is excluded from navigation');
     });
 
-    QUnit.skip('ArrowRight to template item: container gets tabindex=0; _insideActiveItem===false', function(assert) {
+    QUnit.test('ArrowRight to template item: container gets tabindex=0; _insideActiveItem===false', function(assert) {
         // NOT IMPLEMENTED.
 
         const toolbar = this.$element.dxToolbar({
@@ -1359,7 +1359,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $templateItem.get(0), 'focusedElement is template item container');
     });
 
-    QUnit.skip('ArrowLeft to template item: container gets tabindex=0; _insideActiveItem===false', function(assert) {
+    QUnit.test('ArrowLeft to template item: container gets tabindex=0; _insideActiveItem===false', function(assert) {
         // NOT IMPLEMENTED.
 
         const toolbar = this.$element.dxToolbar({
@@ -1384,7 +1384,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $templateItem.get(0), 'ArrowLeft moved focus to template item');
     });
 
-    QUnit.skip('ArrowLeft/Right while template container is focused navigate toolbar', function(assert) {
+    QUnit.test('ArrowLeft/Right while template container is focused navigate toolbar', function(assert) {
         // NOT IMPLEMENTED.
 
         const toolbar = this.$element.dxToolbar({
@@ -1409,7 +1409,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $itemC.get(0), 'ArrowRight from template item moves focus to C');
     });
 
-    QUnit.skip('Enter on template container: _insideActiveItem===true; focus moves to first focusable', function(assert) {
+    QUnit.test('Enter on template container: _insideActiveItem===true; focus moves to first focusable', function(assert) {
         // NOT IMPLEMENTED.
 
         this.$element.dxToolbar({
@@ -1437,7 +1437,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('Space on template container: same as Enter', function(assert) {
+    QUnit.test('Space on template container: same as Enter', function(assert) {
         // NOT IMPLEMENTED.
 
         this.$element.dxToolbar({
@@ -1465,7 +1465,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('Escape inside template: _insideActiveItem===false; focus returns to container', function(assert) {
+    QUnit.test('Escape inside template: _insideActiveItem===false; focus returns to container', function(assert) {
         // NOT IMPLEMENTED.
 
         this.$element.dxToolbar({
@@ -1496,7 +1496,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('Tab inside template moves through focusable elements in DOM order', function(assert) {
+    QUnit.test('Tab inside template moves through focusable elements in DOM order', function(assert) {
         // NOT IMPLEMENTED.
 
         this.$element.dxToolbar({
@@ -1533,7 +1533,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('Tab after last focusable inside template exits toolbar', function(assert) {
+    QUnit.test('Tab after last focusable inside template exits toolbar', function(assert) {
         // NOT IMPLEMENTED.
 
         this.$element.dxToolbar({
@@ -1566,7 +1566,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('click on focusable inside template sets active item and enters inner-focus mode', function(assert) {
+    QUnit.test('click on focusable inside template sets active item and enters inner-focus mode', function(assert) {
         // NOT IMPLEMENTED.
 
         const toolbar = this.$element.dxToolbar({
@@ -1594,114 +1594,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
 });
 
 QUnit.module('Extra — Core behaviors', moduleConfig, function() {
-
-    QUnit.test('Tab-in focus lands on first item (focusin on toolbar root)', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'First' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'Second' } },
-            ],
-        }).dxToolbar('instance');
-
-        const $available = toolbar._getAvailableItems();
-        const $firstFocusTarget = getItemFocusTarget($available.first());
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        if($firstFocusTarget && $firstFocusTarget.length) {
-            this.$element.trigger($.Event('focusin', { target: $firstFocusTarget.get(0) }));
-            this.clock.tick(0);
-        }
-
-        const { focusedElement } = toolbar.option();
-        assert.strictEqual(
-            $(focusedElement).get(0),
-            $available.first().get(0),
-            'After tab-in, focusedElement is set to the first toolbar item',
-        );
-    });
-
-    QUnit.test('ArrowRight moves to next item', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        const $firstFocusTarget = getItemFocusTarget($items.first());
-
-        dispatchKeydown($firstFocusTarget.get(0), 'ArrowRight');
-        this.clock.tick(0);
-
-        const { focusedElement } = toolbar.option();
-        assert.strictEqual(
-            $(focusedElement).get(0),
-            $items.eq(1).get(0),
-            'ArrowRight moves to second item',
-        );
-    });
-
-    QUnit.test('Home jumps to first item', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        toolbar.option('focusedElement', $items.last().get(0));
-        const $lastFocusTarget = getItemFocusTarget($items.last());
-
-        dispatchKeydown($lastFocusTarget.get(0), 'Home');
-        this.clock.tick(0);
-
-        const { focusedElement } = toolbar.option();
-        assert.strictEqual(
-            $(focusedElement).get(0),
-            $items.first().get(0),
-            'Home moves to first item',
-        );
-    });
-
-    QUnit.test('End jumps to last item', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        const $firstFocusTarget = getItemFocusTarget($items.first());
-
-        dispatchKeydown($firstFocusTarget.get(0), 'End');
-        this.clock.tick(0);
-
-        const { focusedElement } = toolbar.option();
-        assert.strictEqual(
-            $(focusedElement).get(0),
-            $items.last().get(0),
-            'End moves to last item',
-        );
-    });
-
-    QUnit.skip('exactly one tabindex=0 exists inside toolbar at all times', function(assert) {
+    QUnit.test('exactly one tabindex=0 exists inside toolbar at all times', function(assert) {
         // BUG (RC-2): Multiple tabindex=0 elements exist (widget root div AND inner inputs
         // like SelectBox input retain their own default tabindex=0).
         // The roving tabindex only sets tabindex=0 on the widget root, leaving inner inputs untouched.
@@ -1719,191 +1612,6 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $tabindex0 = this.$element.find('[tabindex="0"]');
         assert.strictEqual($tabindex0.length, 1, 'Exactly one element inside toolbar has tabindex=0');
-    });
-
-    QUnit.test('Mouse click updates focusedElement', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-            ],
-        }).dxToolbar('instance');
-
-        const $items = toolbar._getAvailableItems();
-        const $secondItem = $items.eq(1);
-        const $secondFocusTarget = getItemFocusTarget($secondItem);
-
-        if($secondFocusTarget && $secondFocusTarget.length) {
-            this.$element.trigger($.Event('focusin', { target: $secondFocusTarget.get(0) }));
-            this.clock.tick(0);
-
-            const { focusedElement } = toolbar.option();
-            assert.strictEqual(
-                $(focusedElement).get(0),
-                $secondItem.get(0),
-                'focusedElement updated to clicked item',
-            );
-        } else {
-            assert.strictEqual(false, true, 'Could not get second item focus target');
-        }
-    });
-
-    QUnit.test('Enter on dxButton fires click', function(assert) {
-        let clicked = false;
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                {
-                    locateInMenu: 'never',
-                    widget: 'dxButton',
-                    options: { text: 'Click Me', onClick: () => { clicked = true; } },
-                },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        const $focusTarget = getItemFocusTarget($items.first());
-        dispatchKeydown($focusTarget.get(0), 'Enter');
-        this.clock.tick(0);
-
-        assert.strictEqual(clicked, true, 'Button click fired on Enter');
-    });
-
-    QUnit.test('ArrowRight/Left on dxTextBox (toolbar mode) navigates toolbar', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'Before' } },
-                { locateInMenu: 'never', widget: 'dxTextBox', options: { placeholder: 'Text' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'After' } },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        const $textBoxRoot = getItemFocusTarget($items.eq(1));
-        dispatchKeydown($textBoxRoot.get(0), 'ArrowRight');
-        this.clock.tick(0);
-
-        const { focusedElement } = toolbar.option();
-        assert.strictEqual(
-            $(focusedElement).get(0),
-            $items.eq(2).get(0),
-            'ArrowRight on textbox root navigates toolbar to next item',
-        );
-    });
-
-    QUnit.test('Enter on dxTextBox activates editing mode', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'Before' } },
-                { locateInMenu: 'never', widget: 'dxTextBox', options: { placeholder: 'Type here' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'After' } },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        const $textBoxRoot = getItemFocusTarget($items.eq(1));
-
-        dispatchKeydown($textBoxRoot.get(0), 'Enter');
-        this.clock.tick(0);
-
-        const $input = $items.eq(1).find(`.${TEXTEDITOR_INPUT_CLASS}`);
-        assert.strictEqual(
-            document.activeElement,
-            $input.get(0),
-            'Enter on TextBox root moves focus to input (editing mode)',
-        );
-    });
-
-    QUnit.test('Escape on dxTextBox in editing mode returns to toolbar mode', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'Before' } },
-                { locateInMenu: 'never', widget: 'dxTextBox', options: { placeholder: 'Type here' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'After' } },
-            ],
-        }).dxToolbar('instance');
-
-        focusToolbar(this.$element);
-        this.clock.tick(0);
-
-        const $items = toolbar._getAvailableItems();
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        const $textBoxRoot = getItemFocusTarget($items.eq(1));
-
-        dispatchKeydown($textBoxRoot.get(0), 'Enter');
-        this.clock.tick(0);
-
-        const $input = $items.eq(1).find(`.${TEXTEDITOR_INPUT_CLASS}`);
-        assert.strictEqual(document.activeElement, $input.get(0), 'Editing mode entered');
-
-        dispatchKeydown($input.get(0), 'Escape');
-        this.clock.tick(0);
-
-        assert.strictEqual(
-            document.activeElement,
-            $textBoxRoot.get(0),
-            'Escape returns focus to TextBox root (toolbar mode)',
-        );
-    });
-
-    QUnit.test('Mouse click (focusin) on item[j] sets item[j] tabindex=0', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        const $items = toolbar._getAvailableItems();
-        const $thirdItem = $items.eq(2);
-        const $thirdFocusTarget = getItemFocusTarget($thirdItem);
-
-        this.$element.trigger($.Event('focusin', { target: $thirdFocusTarget.get(0) }));
-        this.clock.tick(0);
-
-        assert.strictEqual(
-            parseInt($thirdFocusTarget.attr('tabindex'), 10),
-            0,
-            'Clicked item has tabindex=0',
-        );
-    });
-
-    QUnit.test('Mouse click on item[j], then ArrowRight focuses item[j+1]', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        const $items = toolbar._getAvailableItems();
-        const $secondItem = $items.eq(1);
-        const $secondFocusTarget = getItemFocusTarget($secondItem);
-
-        this.$element.trigger($.Event('focusin', { target: $secondFocusTarget.get(0) }));
-        this.clock.tick(0);
-
-        dispatchKeydown($secondFocusTarget.get(0), 'ArrowRight');
-        this.clock.tick(0);
-
-        const { focusedElement } = toolbar.option();
-        assert.strictEqual(
-            $(focusedElement).get(0),
-            $items.eq(2).get(0),
-            'ArrowRight after click on item[1] moves to item[2]',
-        );
     });
 
     QUnit.test('Empty toolbar — no crash, no tabindex=0 items', function(assert) {
@@ -1994,18 +1702,5 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         );
 
         assert.strictEqual(indexAfter < indexBefore, true, 'RTL: ArrowLeft moved to item with lower DOM index (toward A)');
-    });
-
-    QUnit.test('Tab-entry setup — initially exactly one item has tabindex=0', function(assert) {
-        this.$element.dxToolbar({
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        });
-
-        const $tab0 = this.$element.find(`.${BUTTON_CLASS}[tabindex="0"]`);
-        assert.strictEqual($tab0.length, 1, 'Exactly one button has tabindex=0 at init');
     });
 });
