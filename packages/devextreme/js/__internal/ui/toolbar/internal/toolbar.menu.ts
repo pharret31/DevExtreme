@@ -23,11 +23,11 @@ import Popup from '@ts/ui/popup/m_popup';
 import ToolbarMenuList, { TOOLBAR_MENU_ACTION_CLASS } from '@ts/ui/toolbar/internal/toolbar.menu.list';
 import { toggleItemFocusableElementTabIndex } from '@ts/ui/toolbar/toolbar.utils';
 
-const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
+export const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
 const DROP_DOWN_MENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
-const DROP_DOWN_MENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
+export const DROP_DOWN_MENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
 const DROP_DOWN_MENU_LIST_CLASS = 'dx-dropdownmenu-list';
-const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
+export const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
 const POPUP_BOUNDARY_VERTICAL_OFFSET = 10;
 const POPUP_VERTICAL_OFFSET = 3;
 
