@@ -17,6 +17,16 @@ import 'ui/select_box';
 import 'ui/drop_down_button';
 import 'ui/button_group';
 import 'ui/text_box';
+import 'ui/number_box';
+import 'ui/date_box';
+import 'ui/date_range_box';
+import 'ui/color_box';
+import 'ui/tag_box';
+import 'ui/autocomplete';
+import 'ui/switch';
+import 'ui/check_box';
+import 'ui/menu';
+import 'ui/tabs';
 
 import 'fluent_blue_light.css!';
 
@@ -40,6 +50,767 @@ QUnit.testStart(function() {
 
     $('#qunit-fixture').html(markup);
     $('#widthRootStyle').css('width', '300px');
+});
+
+QUnit.module('Enter/Exit: text input editors', {
+    beforeEach: function() {
+        this.clock = sinon.useFakeTimers();
+        this.$element = $('#toolbar');
+        fx.off = true;
+    },
+    afterEach: function() {
+        this.clock.restore();
+        fx.off = false;
+        const instance = this.$element.dxToolbar('instance');
+        if(instance) {
+            instance.dispose();
+        }
+    },
+}, function() {
+    function triggerKey(element, key) {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    }
+
+    const textEditorWidgets = [
+        {
+            widget: 'dxTextBox',
+            options: { value: 'hello', inputAttr: { 'aria-label': 'Test' } },
+        },
+        {
+            widget: 'dxNumberBox',
+            options: { value: 42, inputAttr: { 'aria-label': 'Test' } },
+        },
+        {
+            widget: 'dxAutocomplete',
+            options: { items: ['Item 1', 'Item 2'], inputAttr: { 'aria-label': 'Test' } },
+        },
+        {
+            widget: 'dxSelectBox',
+            options: { items: ['A', 'B', 'C'], value: 'A', inputAttr: { 'aria-label': 'Test' } },
+        },
+        {
+            widget: 'dxDateBox',
+            options: { type: 'date', inputAttr: { 'aria-label': 'Test' } },
+        },
+        {
+            widget: 'dxDateRangeBox',
+            options: { startDateInputAttr: { 'aria-label': 'Start' }, endDateInputAttr: { 'aria-label': 'End' } },
+        },
+        {
+            widget: 'dxColorBox',
+            options: { value: '#ff0000', inputAttr: { 'aria-label': 'Test' } },
+        },
+        {
+            widget: 'dxTagBox',
+            options: { items: ['Tag1', 'Tag2', 'Tag3'], inputAttr: { 'aria-label': 'Test' } },
+        },
+    ];
+
+    textEditorWidgets.forEach(({ widget, options }) => {
+        function findInput($item) {
+            return $item.find('.dx-texteditor-input').first();
+        }
+
+        QUnit.test(`${widget}: Enter focuses input`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $input = findInput($items.eq(1));
+            assert.strictEqual(document.activeElement, $input.get(0),
+                `Enter focuses ${widget} input`);
+        });
+
+        QUnit.test(`${widget}: arrows blocked while input focused`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $input = findInput($items.eq(1));
+            triggerKey($input.get(0), 'ArrowLeft');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+                `ArrowLeft does not navigate toolbar while ${widget} input is focused`);
+
+            triggerKey($input.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+                `ArrowRight does not navigate toolbar while ${widget} input is focused`);
+        });
+
+        QUnit.test(`${widget}: Esc exits editing mode`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $input = findInput($items.eq(1));
+            triggerKey($input.get(0), 'Escape');
+            this.clock.tick(50);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+                `Esc keeps toolbar focusedElement on ${widget} item`);
+        });
+
+        QUnit.test(`${widget}: arrows navigate toolbar after Esc`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $input = findInput($items.eq(1));
+            triggerKey($input.get(0), 'Escape');
+            this.clock.tick(50);
+
+            triggerKey(this.$element.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(2).get(0),
+                `ArrowRight navigates toolbar after Esc from ${widget}`);
+        });
+
+        QUnit.test(`${widget}: tabindex invariant after enter and exit`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $input = findInput($items.eq(1));
+            triggerKey($input.get(0), 'Escape');
+            this.clock.tick(50);
+
+            triggerKey(this.$element.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            const $tabZero = this.$element.find('[tabindex="0"]').not('.dx-texteditor-input');
+            assert.strictEqual($tabZero.length, 1,
+                `Exactly one non-input tabindex=0 after enter/exit/navigate cycle with ${widget}`);
+        });
+    });
+});
+
+QUnit.module('Enter/Exit: dropdown/popup editors (matrix)', {
+    beforeEach: function() {
+        this.clock = sinon.useFakeTimers();
+        this.$element = $('#toolbar');
+        fx.off = true;
+    },
+    afterEach: function() {
+        this.clock.restore();
+        fx.off = false;
+        const instance = this.$element.dxToolbar('instance');
+        if(instance) {
+            instance.dispose();
+        }
+    },
+}, function() {
+    function triggerKey(element, key) {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    }
+
+    const dropDownWidgets = [
+        {
+            widget: 'dxDropDownButton',
+            options: { items: ['Option 1', 'Option 2'], text: 'Actions' },
+            getInstance($item) {
+                return $item.find('.dx-dropdownbutton').dxDropDownButton('instance');
+            },
+            getFocusTarget($item) {
+                return $item.find('.dx-buttongroup');
+            },
+            prepareFocus($item) {
+                const bgInstance = $item.find('.dx-buttongroup').dxButtonGroup('instance');
+                const $firstItem = bgInstance._buttonsCollection._itemElements().eq(0);
+                bgInstance._buttonsCollection.option('focusedElement', $firstItem.get(0));
+            },
+        },
+    ];
+
+    dropDownWidgets.forEach(({ widget, options, getInstance, getFocusTarget, prepareFocus }) => {
+        QUnit.test(`${widget}: Enter opens popup`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            const $targetItem = $items.eq(1);
+            toolbar.option('focusedElement', $targetItem.get(0));
+            prepareFocus($targetItem);
+
+            triggerKey(getFocusTarget($targetItem).get(0), 'Enter');
+            this.clock.tick(300);
+
+            const instance = getInstance($targetItem);
+            assert.strictEqual(instance.option('opened'), true,
+                `Enter opens ${widget} popup`);
+        });
+
+        QUnit.test(`${widget}: Space opens popup`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            const $targetItem = $items.eq(1);
+            toolbar.option('focusedElement', $targetItem.get(0));
+            prepareFocus($targetItem);
+
+            triggerKey(getFocusTarget($targetItem).get(0), ' ');
+            this.clock.tick(300);
+
+            const instance = getInstance($targetItem);
+            assert.strictEqual(instance.option('opened'), true,
+                `Space opens ${widget} popup`);
+        });
+
+        QUnit.test(`${widget}: ArrowDown opens popup`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            const $targetItem = $items.eq(1);
+            toolbar.option('focusedElement', $targetItem.get(0));
+
+            triggerKey(getFocusTarget($targetItem).get(0), 'ArrowDown');
+            this.clock.tick(300);
+
+            const instance = getInstance($targetItem);
+            assert.strictEqual(instance.option('opened'), true,
+                `ArrowDown opens ${widget} popup`);
+        });
+
+        QUnit.test(`${widget}: arrows blocked while popup open`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            const $targetItem = $items.eq(1);
+            toolbar.option('focusedElement', $targetItem.get(0));
+            prepareFocus($targetItem);
+
+            triggerKey(getFocusTarget($targetItem).get(0), 'Enter');
+            this.clock.tick(300);
+
+            triggerKey(this.$element.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $targetItem.get(0),
+                `ArrowRight does not navigate toolbar while ${widget} popup is open`);
+
+            triggerKey(this.$element.get(0), 'ArrowLeft');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $targetItem.get(0),
+                `ArrowLeft does not navigate toolbar while ${widget} popup is open`);
+        });
+
+        QUnit.test(`${widget}: Esc closes popup and keeps toolbar focus`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            const $targetItem = $items.eq(1);
+            toolbar.option('focusedElement', $targetItem.get(0));
+
+            const instance = getInstance($targetItem);
+            instance.option('opened', true);
+            this.clock.tick(300);
+
+            triggerKey(getFocusTarget($targetItem).get(0), 'Escape');
+            this.clock.tick(300);
+
+            assert.strictEqual(instance.option('opened'), false,
+                `Esc closes ${widget} popup`);
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $targetItem.get(0),
+                `Toolbar focus stays on ${widget} item after Esc`);
+        });
+    });
+});
+
+QUnit.module('Enter/Exit: toggle widgets', {
+    beforeEach: function() {
+        this.clock = sinon.useFakeTimers();
+        this.$element = $('#toolbar');
+        fx.off = true;
+    },
+    afterEach: function() {
+        this.clock.restore();
+        fx.off = false;
+        const instance = this.$element.dxToolbar('instance');
+        if(instance) {
+            instance.dispose();
+        }
+    },
+}, function() {
+    function triggerKey(element, key) {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    }
+
+    const toggleWidgets = [
+        {
+            widget: 'dxSwitch',
+            options: { value: false, width: 70 },
+            containerSelector: '.dx-switch',
+            getValueFn(instance) { return instance.option('value'); },
+            toggledByEnter: true,
+        },
+        {
+            widget: 'dxCheckBox',
+            options: { text: 'Check', value: false },
+            containerSelector: '.dx-checkbox',
+            getValueFn(instance) { return instance.option('value'); },
+            toggledByEnter: false,
+        },
+    ];
+
+    toggleWidgets.forEach(({ widget, options, containerSelector, getValueFn, toggledByEnter }) => {
+        if(toggledByEnter) {
+            QUnit.test(`${widget}: Enter toggles value`, function(assert) {
+                this.$element.dxToolbar({
+                    items: [
+                        { widget: 'dxButton', options: { text: 'Prev' } },
+                        { widget, options },
+                        { widget: 'dxButton', options: { text: 'Next' } },
+                    ],
+                });
+
+                const $widgetEl = this.$element.find(containerSelector);
+                const widgetInstance = $widgetEl[widget]('instance');
+
+                const valueBefore = getValueFn(widgetInstance);
+
+                const $focusTarget = $widgetEl;
+                $focusTarget.get(0).focus();
+                this.clock.tick(0);
+
+                triggerKey($focusTarget.get(0), 'Enter');
+                this.clock.tick(50);
+
+                const valueAfter = getValueFn(widgetInstance);
+                assert.notStrictEqual(valueAfter, valueBefore,
+                    `Enter toggles ${widget} value`);
+            });
+        } else {
+            QUnit.test(`${widget}: Enter does not toggle value`, function(assert) {
+                this.$element.dxToolbar({
+                    items: [
+                        { widget: 'dxButton', options: { text: 'Prev' } },
+                        { widget, options },
+                        { widget: 'dxButton', options: { text: 'Next' } },
+                    ],
+                });
+
+                const $widgetEl = this.$element.find(containerSelector);
+                const widgetInstance = $widgetEl[widget]('instance');
+
+                const valueBefore = getValueFn(widgetInstance);
+
+                const $focusTarget = $widgetEl;
+                $focusTarget.get(0).focus();
+                this.clock.tick(0);
+
+                triggerKey($focusTarget.get(0), 'Enter');
+                this.clock.tick(50);
+
+                const valueAfter = getValueFn(widgetInstance);
+                assert.strictEqual(valueAfter, valueBefore,
+                    `Enter does not toggle ${widget} value`);
+            });
+        }
+
+        QUnit.test(`${widget}: Space toggles value`, function(assert) {
+            this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            });
+
+            const $widgetEl = this.$element.find(containerSelector);
+            const widgetInstance = $widgetEl[widget]('instance');
+
+            const valueBefore = getValueFn(widgetInstance);
+
+            const $focusTarget = $widgetEl;
+            $focusTarget.get(0).focus();
+            this.clock.tick(0);
+
+            triggerKey($focusTarget.get(0), ' ');
+            this.clock.tick(50);
+
+            const valueAfter = getValueFn(widgetInstance);
+            assert.notStrictEqual(valueAfter, valueBefore,
+                `Space toggles ${widget} value`);
+        });
+
+        QUnit.test(`${widget}: arrows navigate toolbar (no inner edit mode)`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(2).get(0),
+                `ArrowRight navigates toolbar from ${widget} (no inner edit mode)`);
+        });
+
+        QUnit.test(`${widget}: ArrowLeft navigates toolbar`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'ArrowLeft');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(0).get(0),
+                `ArrowLeft navigates toolbar from ${widget} (no inner edit mode)`);
+        });
+    });
+});
+
+QUnit.module('Enter/Exit: collection widgets', {
+    beforeEach: function() {
+        this.clock = sinon.useFakeTimers();
+        this.$element = $('#toolbar');
+        fx.off = true;
+    },
+    afterEach: function() {
+        this.clock.restore();
+        fx.off = false;
+        const instance = this.$element.dxToolbar('instance');
+        if(instance) {
+            instance.dispose();
+        }
+    },
+}, function() {
+    function triggerKey(element, key) {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    }
+
+    const collectionWidgets = [
+        {
+            widget: 'dxMenu',
+            options: {
+                items: [
+                    { text: 'File', items: [{ text: 'New' }, { text: 'Open' }] },
+                    { text: 'Edit', items: [{ text: 'Cut' }, { text: 'Copy' }] },
+                ],
+            },
+            containerSelector: '.dx-menu',
+            getInnerFocusableSelector: '.dx-menu-item',
+        },
+    ];
+
+    collectionWidgets.forEach(({ widget, options, getInnerFocusableSelector }) => {
+        QUnit.test(`${widget}: Enter activates inner navigation`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $innerFocusable = $items.eq(1).find(getInnerFocusableSelector).first();
+            assert.strictEqual(
+                $items.eq(1).get(0).contains(document.activeElement),
+                true,
+                `Enter activates inner navigation for ${widget} (focus is inside the widget)`,
+            );
+            assert.ok($innerFocusable.length > 0, `${widget} has inner focusable elements`);
+        });
+
+        QUnit.test(`${widget}: arrows blocked in active mode`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const activeEl = document.activeElement;
+            triggerKey(activeEl, 'ArrowRight');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+                `ArrowRight does not navigate toolbar while inside ${widget}`);
+
+            triggerKey(activeEl, 'ArrowLeft');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+                `ArrowLeft does not navigate toolbar while inside ${widget}`);
+        });
+
+        QUnit.test(`${widget}: Esc exits to toolbar mode`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            triggerKey(document.activeElement, 'Escape');
+            this.clock.tick(50);
+
+            assert.strictEqual(document.activeElement, $items.eq(1).get(0),
+                `Esc returns focus to toolbar item containing ${widget}`);
+        });
+
+        QUnit.test(`${widget}: arrows navigate toolbar after Esc`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            triggerKey(document.activeElement, 'Escape');
+            this.clock.tick(50);
+
+            triggerKey(this.$element.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(2).get(0),
+                `ArrowRight navigates toolbar after Esc from ${widget}`);
+        });
+
+        QUnit.test(`${widget}: tabindex invariant after enter and exit`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            triggerKey(document.activeElement, 'Escape');
+            this.clock.tick(50);
+
+            triggerKey(this.$element.get(0), 'ArrowRight');
+            this.clock.tick(0);
+
+            const $tabZero = this.$element.find('[tabindex="0"]');
+            assert.strictEqual($tabZero.length, 1,
+                `Exactly one tabindex=0 after enter/exit/navigate cycle with ${widget}`);
+        });
+    });
+});
+
+QUnit.module('Enter/Exit: dxTabs in toolbar', {
+    beforeEach: function() {
+        this.clock = sinon.useFakeTimers();
+        this.$element = $('#toolbar');
+        fx.off = true;
+    },
+    afterEach: function() {
+        this.clock.restore();
+        fx.off = false;
+        const instance = this.$element.dxToolbar('instance');
+        if(instance) {
+            instance.dispose();
+        }
+    },
+}, function() {
+    function triggerKey(element, key) {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    }
+
+    function createTabsToolbar($el) {
+        return $el.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'Prev' } },
+                { widget: 'dxTabs', options: { items: [{ text: 'Home' }, { text: 'Insert' }, { text: 'Layout' }], selectedIndex: 0, width: 'auto' } },
+                { widget: 'dxButton', options: { text: 'Next' } },
+            ],
+        }).dxToolbar('instance');
+    }
+
+    QUnit.test('dxTabs: ArrowRight navigates toolbar to next item', function(assert) {
+        const toolbar = createTabsToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+
+        triggerKey(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(2).get(0),
+            'ArrowRight navigates toolbar away from dxTabs to next item');
+    });
+
+    QUnit.test('dxTabs: ArrowLeft navigates toolbar to previous item', function(assert) {
+        const toolbar = createTabsToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+
+        triggerKey(this.$element.get(0), 'ArrowLeft');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(0).get(0),
+            'ArrowLeft navigates toolbar away from dxTabs to previous item');
+    });
+
+    QUnit.test('dxTabs: ArrowDown switches tabs (does not navigate toolbar)', function(assert) {
+        const toolbar = createTabsToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+        const tabs = $items.eq(1).find('.dx-tabs').dxTabs('instance');
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        const $tabsContainer = $items.eq(1).find('.dx-tabs');
+        $tabsContainer.get(0).focus();
+        this.clock.tick(50);
+
+        const selectedBefore = tabs.option('selectedIndex');
+        triggerKey(document.activeElement, 'ArrowDown');
+        this.clock.tick(50);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowDown does not navigate toolbar');
+        assert.strictEqual(tabs.option('selectedIndex'), selectedBefore + 1,
+            'ArrowDown switches to next tab');
+    });
+
+    QUnit.test('dxTabs: ArrowUp switches tabs (does not navigate toolbar)', function(assert) {
+        const toolbar = createTabsToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+        const tabs = $items.eq(1).find('.dx-tabs').dxTabs('instance');
+
+        tabs.option('selectedIndex', 1);
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        const $tabsContainer = $items.eq(1).find('.dx-tabs');
+        $tabsContainer.get(0).focus();
+        this.clock.tick(50);
+
+        const selectedBefore = tabs.option('selectedIndex');
+        triggerKey(document.activeElement, 'ArrowUp');
+        this.clock.tick(50);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowUp does not navigate toolbar');
+        assert.strictEqual(tabs.option('selectedIndex'), selectedBefore - 1,
+            'ArrowUp switches to previous tab');
+    });
 });
 
 function dispatchKeydown(element, key, options = {}) {
@@ -289,7 +1060,7 @@ QUnit.module('Core Navigation', {
             'ArrowRight skips two consecutive disabled items and lands on D');
     });
 
-    QUnit.test('disabled item never gets tabindex=0', function(assert) {
+    QUnit.test('disabled item never has tabindex=0', function(assert) {
         this.$element.dxToolbar({
             items: [
                 { widget: 'dxButton', options: { text: 'A' } },
