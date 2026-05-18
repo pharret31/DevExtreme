@@ -2229,6 +2229,317 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
             'Mouse click on template content sets focusedElement to template item container',
         );
     });
+
+    // --- Template with <a href> (link) ---
+
+    QUnit.test('template with <a href> is included in _getAvailableItems', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<a href="#" class="tmpl-link">').text('Link') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 3, 'template with <a href> is included in available items');
+    });
+
+    QUnit.test('template with <a href>: getItemFocusTarget returns the <a> element', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<a href="#" class="tmpl-link">').text('Link') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        });
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $templateItem = $allItems.eq(1);
+        const $focusTarget = getItemFocusTarget($templateItem);
+
+        assert.strictEqual($focusTarget.get(0), $templateItem.find('.tmpl-link').get(0),
+            'getItemFocusTarget returns the <a> element inside template');
+    });
+
+    QUnit.test('template with <a href>: tabindex=0 when active, -1 when not', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<a href="#" class="tmpl-link">').text('Link') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $templateItem = $allItems.eq(1);
+        const $link = $templateItem.find('.tmpl-link');
+
+        assert.strictEqual($link.attr('tabindex'), '-1',
+            'link has tabindex=-1 when not the active item');
+
+        const $available = toolbar._getAvailableItems();
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($available.eq(0)).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($available.eq(0)).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($link.attr('tabindex'), '0',
+            'link has tabindex=0 when it is the active item');
+    });
+
+    QUnit.test('template with <a href>: ArrowRight navigates to next toolbar item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<a href="#" class="tmpl-link">').text('Link') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $linkItem = $available.eq(1);
+        const $itemC = $available.eq(2);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($linkItem).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($linkItem).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemC.get(0),
+            'ArrowRight from link template navigates to next toolbar item');
+    });
+
+    QUnit.test('template with <a href>: ArrowLeft navigates to previous toolbar item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<a href="#" class="tmpl-link">').text('Link') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $itemA = $available.eq(0);
+        const $linkItem = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($linkItem).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($linkItem).get(0), 'ArrowLeft');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemA.get(0),
+            'ArrowLeft from link template navigates to previous toolbar item');
+    });
+
+    // --- Template with DX-widget ---
+
+    QUnit.test('template with dxButton widget: included in _getAvailableItems', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div>').dxButton({ text: 'TemplateBtn' }) },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 3, 'template with dxButton is included in available items');
+    });
+
+    QUnit.test('template with dxButton widget: getItemFocusTarget returns the dx-button element', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div>').dxButton({ text: 'TemplateBtn' }) },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        });
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $templateItem = $allItems.eq(1);
+        const $focusTarget = getItemFocusTarget($templateItem);
+        const $dxButton = $templateItem.find('.dx-button').first();
+
+        assert.strictEqual($focusTarget.get(0), $dxButton.get(0),
+            'getItemFocusTarget returns the dx-button inside the template');
+    });
+
+    QUnit.test('template with dxButton widget: ArrowRight navigates toolbar', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div>').dxButton({ text: 'TemplateBtn' }) },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $templateItem = $available.eq(1);
+        const $itemC = $available.eq(2);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($templateItem).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($templateItem).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemC.get(0),
+            'ArrowRight from template dxButton navigates to next toolbar item');
+    });
+
+    // --- Template with multiple focusable elements (one stop) ---
+
+    QUnit.test('template with multiple focusable elements: item is one stop in _getAvailableItems', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                {
+                    locateInMenu: 'never',
+                    template: () => $('<div>').append(
+                        $('<button type="button" class="inner-btn-1">').text('B1'),
+                        $('<button type="button" class="inner-btn-2">').text('B2'),
+                    ),
+                },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 3,
+            'template with multiple buttons is one stop — 3 available items total');
+    });
+
+    QUnit.test('template with multiple focusable elements: ArrowRight moves to next toolbar item, not into template', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                {
+                    locateInMenu: 'never',
+                    template: () => $('<div>').append(
+                        $('<button type="button" class="inner-btn-1">').text('B1'),
+                        $('<button type="button" class="inner-btn-2">').text('B2'),
+                    ),
+                },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $templateItem = $available.eq(1);
+        const $itemC = $available.eq(2);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($templateItem).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($templateItem).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemC.get(0),
+            'ArrowRight from multi-button template moves to next toolbar item, not into inner buttons');
+    });
+
+    QUnit.test('template with multiple focusable elements: ArrowLeft moves to prev toolbar item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                {
+                    locateInMenu: 'never',
+                    template: () => $('<div>').append(
+                        $('<button type="button" class="inner-btn-1">').text('B1'),
+                        $('<button type="button" class="inner-btn-2">').text('B2'),
+                    ),
+                },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $itemA = $available.eq(0);
+        const $templateItem = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($templateItem).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($templateItem).get(0), 'ArrowLeft');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemA.get(0),
+            'ArrowLeft from multi-button template moves to previous toolbar item');
+    });
+
+    QUnit.test('template with multiple focusable: inner elements have tabindex=-1 before activation', function(assert) {
+        // NOT IMPLEMENTED: toolbar does not manage inner element tabindexes for templates.
+        // Only the first native focusable (focus target) gets tabindex from roving mechanism.
+
+        this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                {
+                    locateInMenu: 'never',
+                    template: () => $('<div>').append(
+                        $('<button type="button" class="inner-btn-1">').text('B1'),
+                        $('<button type="button" class="inner-btn-2">').text('B2'),
+                    ),
+                },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        });
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $templateItem = $allItems.eq(1);
+        const $btn1 = $templateItem.find('.inner-btn-1');
+        const $btn2 = $templateItem.find('.inner-btn-2');
+
+        assert.strictEqual($btn1.attr('tabindex'), '-1',
+            'first inner button has tabindex=-1 (not the active item)');
+        assert.strictEqual($btn2.attr('tabindex'), '-1',
+            'second inner button has tabindex=-1 before activation');
+    });
+
+    QUnit.test('template with multiple focusable: ArrowRight/Left inside activated mode do NOT navigate toolbar', function(assert) {
+        // NOT IMPLEMENTED: no inner-focus mode for templates yet.
+
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                {
+                    locateInMenu: 'never',
+                    template: () => $('<div>').append(
+                        $('<button type="button" class="inner-btn-1">').text('B1'),
+                        $('<button type="button" class="inner-btn-2">').text('B2'),
+                    ),
+                },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $templateItem = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($templateItem).get(0) }));
+        this.clock.tick(0);
+
+        // Activate inner mode via Enter
+        dispatchKeydown(getItemFocusTarget($templateItem).get(0), 'Enter');
+        this.clock.tick(0);
+
+        // Now ArrowRight should NOT navigate toolbar
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $templateItem.get(0),
+            'ArrowRight inside activated template does NOT navigate toolbar');
+    });
 });
 
 QUnit.module('Extra — Core behaviors', moduleConfig, function() {
