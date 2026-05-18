@@ -51,10 +51,6 @@ function dispatchKeydown(element, key, options = {}) {
     }));
 }
 
-function focusToolbar($toolbar) {
-    $toolbar.trigger($.Event('focusin', { target: $toolbar.get(0) }));
-}
-
 function getItemFocusTarget($item) {
     const $dropDownButton = $item.find('.dx-dropdownbutton').first();
     if($dropDownButton.length) {
@@ -1008,15 +1004,7 @@ QUnit.module('Mouse and keyboard sync', {
 });
 
 QUnit.module('Disabled items skip', moduleConfig, function() {
-    // BUG: _getAvailableItems() in f0fca41 does NOT filter out disabled items.
-    // getItemFocusTarget() returns the widget root div for disabled items (identical to enabled).
-    // The roving tabindex mechanism therefore CAN land on a disabled toolbar item.
-    // All AC-1.5.1 tests are SKIPPED; they document unimplemented contract behavior.
-
     QUnit.test('ArrowRight skips disabled item', function(assert) {
-        // BUG: ArrowRight can land on a disabled item because _getAvailableItems()
-        // includes disabled items. AC-1.5.1 is not implemented in f0fca41.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -1040,8 +1028,6 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
     });
 
     QUnit.test('ArrowLeft skips disabled item', function(assert) {
-        // BUG: Same root cause as AC-1.5.1.2.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -1065,8 +1051,6 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
     });
 
     QUnit.test('Home skips leading disabled items', function(assert) {
-        // BUG: Home can land on a leading disabled item. AC-1.5.1 not implemented in f0fca41.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', disabled: true, options: { text: 'Disabled' } },
@@ -1090,8 +1074,6 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
     });
 
     QUnit.test('End skips trailing disabled items', function(assert) {
-        // BUG: End can land on a trailing disabled item. AC-1.5.1 not implemented in f0fca41.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -1115,9 +1097,6 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
     });
 
     QUnit.test('disabled item never has tabindex=0', function(assert) {
-        // BUG: Roving tabindex does not exclude disabled items in f0fca41.
-        // After navigation a disabled item can receive tabindex=0.
-
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -1144,10 +1123,6 @@ QUnit.module('Disabled items skip', moduleConfig, function() {
 
 QUnit.module('Dynamic item removal', moduleConfig, function() {
     QUnit.test('after toolbar.option(items), active item retains tabindex=0', function(assert) {
-        // NOT IMPLEMENTED in f0fca41: no active-item data-reference tracking.
-        // After re-render, _postProcessRenderItems uses stale focusedElement (old DOM element)
-        // → no match → first item always gets tabindex=0.
-
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
         const itemB = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } };
         const itemC = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } };
@@ -1178,8 +1153,6 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
     });
 
     QUnit.test('inserting item before active does not shift focus', function(assert) {
-        // NOT IMPLEMENTED in f0fca41: same root cause as 1.5.2.1.
-
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
         const itemB = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } };
         const itemC = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } };
@@ -1238,8 +1211,6 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
     });
 
     QUnit.test('removing active item moves focus to previous item', function(assert) {
-        // NOT IMPLEMENTED in f0fca41: after removal first item always gets tabindex=0.
-
         const itemA = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } };
         const itemB = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } };
         const itemC = { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } };
@@ -1334,10 +1305,6 @@ QUnit.module('Dynamic item removal', moduleConfig, function() {
     });
 
     QUnit.test('navigation order follows DOM order (before, before, after)', function(assert) {
-        // The _getAvailableItems / _getVisibleItems uses DOM traversal via
-        // _itemContainer().find(...) which is DOM-order. This likely works,
-        // but verifying requires a stable active-item state. Skipped with 1.5.2 suite.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', location: 'before', options: { text: 'B1' } },
@@ -1673,10 +1640,6 @@ QUnit.module('Overflow menu', moduleConfig, function() {
     });
 
     QUnit.skip('Tab inside menu closes popup and exits toolbar', function(assert) {
-        // BUG (RC-6): Tab from inside overflow popup moves focus outside toolbar
-        // but the popup does NOT close. Known issue per compliance report.
-        // The popup remains open after Tab navigation.
-
         const toolbar = makeOverflowToolbar(this.$element);
         const menu = toolbar._layoutStrategy._menu;
 
@@ -1693,10 +1656,6 @@ QUnit.module('Overflow menu', moduleConfig, function() {
     });
 
     QUnit.skip('after close, overflow button retains tabindex=0; others have tabindex=-1', function(assert) {
-        // BUG (RC-2): Multiple tabindex=0 elements exist due to inner widget inputs
-        // (SelectBox, TextBox etc.) retaining their own default tabindex=0.
-        // The overflow button does have tabindex=0, but uniqueness is not guaranteed.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
@@ -1930,8 +1889,6 @@ QUnit.module('Overflow menu', moduleConfig, function() {
 
 QUnit.module('Template items (pending)', moduleConfig, function() {
     QUnit.test('template item with focusable content is in roving tabindex sequence', function(assert) {
-        // NOT IMPLEMENTED: getItemFocusTarget does not recognize .dx-item-content as a focus host.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -1953,8 +1910,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('template item with no focusable content is skipped in navigation', function(assert) {
-        // NOT IMPLEMENTED: same root cause.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -1968,8 +1923,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('ArrowRight to template item: container gets tabindex=0; _insideActiveItem===false', function(assert) {
-        // NOT IMPLEMENTED.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2000,8 +1953,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('ArrowLeft to template item: container gets tabindex=0; _insideActiveItem===false', function(assert) {
-        // NOT IMPLEMENTED.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2025,8 +1976,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('ArrowLeft/Right while template container is focused navigate toolbar', function(assert) {
-        // NOT IMPLEMENTED.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2050,8 +1999,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('Enter on template container: _insideActiveItem===true; focus moves to first focusable', function(assert) {
-        // NOT IMPLEMENTED.
-
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2078,8 +2025,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('Space on template container: same as Enter', function(assert) {
-        // NOT IMPLEMENTED.
-
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2106,8 +2051,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('Escape inside template: _insideActiveItem===false; focus returns to container', function(assert) {
-        // NOT IMPLEMENTED.
-
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2137,8 +2080,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('Tab inside template moves through focusable elements in DOM order', function(assert) {
-        // NOT IMPLEMENTED.
-
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2205,8 +2146,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('click on focusable inside template sets active item and enters inner-focus mode', function(assert) {
-        // NOT IMPLEMENTED.
-
         const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2233,10 +2172,6 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
 
 QUnit.module('Extra — Core behaviors', moduleConfig, function() {
     QUnit.test('exactly one tabindex=0 exists inside toolbar at all times', function(assert) {
-        // BUG (RC-2): Multiple tabindex=0 elements exist (widget root div AND inner inputs
-        // like SelectBox input retain their own default tabindex=0).
-        // The roving tabindex only sets tabindex=0 on the widget root, leaving inner inputs untouched.
-
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -2245,7 +2180,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             ],
         });
 
-        focusToolbar(this.$element);
+        this.$element.trigger($.Event('focusin', { target: this.$element.get(0) }));
         this.clock.tick(0);
 
         const $tabindex0 = this.$element.find('[tabindex="0"]');
