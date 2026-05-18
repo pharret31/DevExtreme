@@ -159,7 +159,7 @@ QUnit.module('Core Navigation', {
         assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.last().get(0), 'focus moved to last item');
     });
 
-    QUnit.test('disabled widget items are skipped by keyboard navigation', function(assert) {
+    QUnit.test('disabled widget items (options.disabled) are skipped by ArrowRight', function(assert) {
         const toolbar = this.$element.dxToolbar({
             items: [
                 { widget: 'dxButton', options: { text: 'A' } },
@@ -169,14 +169,133 @@ QUnit.module('Core Navigation', {
         }).dxToolbar('instance');
 
         const $items = toolbar._getAvailableItems();
-        const $itemA = $items.eq(0);
-        const $itemC = $items.eq(2);
+        assert.strictEqual($items.length, 2, 'only 2 available items (disabled filtered out)');
 
-        toolbar.option('focusedElement', $itemA.get(0));
+        toolbar.option('focusedElement', $items.eq(0).get(0));
         triggerKey(this.$element.get(0), 'ArrowRight');
 
-        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $itemC.get(0),
-            'ArrowRight skips disabled item and moves to the next enabled item');
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowRight skips disabled item and moves to C');
+    });
+
+    QUnit.test('disabled toolbar items (item.disabled) are skipped by ArrowRight', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', disabled: true, options: { text: 'B' } },
+                { widget: 'dxButton', options: { text: 'C' } },
+            ]
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        assert.strictEqual($items.length, 2, 'only 2 available items (disabled filtered out)');
+
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        triggerKey(this.$element.get(0), 'ArrowRight');
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowRight skips item.disabled and moves to C');
+    });
+
+    QUnit.test('disabled widget items are skipped by ArrowLeft', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', options: { text: 'B', disabled: true } },
+                { widget: 'dxButton', options: { text: 'C' } },
+            ]
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        triggerKey(this.$element.get(0), 'ArrowLeft');
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(0).get(0),
+            'ArrowLeft skips disabled item and moves to A');
+    });
+
+    QUnit.test('Home skips leading disabled items', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', disabled: true, options: { text: 'A' } },
+                { widget: 'dxButton', options: { text: 'B' } },
+                { widget: 'dxButton', options: { text: 'C' } },
+            ]
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.last().get(0));
+        triggerKey(this.$element.get(0), 'Home');
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(0).get(0),
+            'Home lands on first enabled item (B), skipping disabled A');
+    });
+
+    QUnit.test('End skips trailing disabled items', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', options: { text: 'B' } },
+                { widget: 'dxButton', disabled: true, options: { text: 'C' } },
+            ]
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        triggerKey(this.$element.get(0), 'End');
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.last().get(0),
+            'End lands on last enabled item (B), skipping disabled C');
+    });
+
+    QUnit.test('multiple consecutive disabled items are all skipped', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', disabled: true, options: { text: 'B' } },
+                { widget: 'dxButton', options: { text: 'C', disabled: true } },
+                { widget: 'dxButton', options: { text: 'D' } },
+            ]
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        assert.strictEqual($items.length, 2, 'only 2 available items');
+
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        triggerKey(this.$element.get(0), 'ArrowRight');
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowRight skips two consecutive disabled items and lands on D');
+    });
+
+    QUnit.test('disabled item never gets tabindex=0', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', options: { text: 'B', disabled: true } },
+                { widget: 'dxButton', options: { text: 'C' } },
+            ]
+        });
+
+        const $disabledButton = this.$element.find('.dx-button.dx-state-disabled');
+        assert.strictEqual($disabledButton.attr('tabindex'), '-1',
+            'disabled button has tabindex=-1');
+    });
+
+    QUnit.test('toolbar.disabled=true sets all items to tabindex=-1', function(assert) {
+        this.$element.dxToolbar({
+            disabled: true,
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', options: { text: 'B' } },
+            ]
+        });
+
+        const $buttons = this.$element.find('.dx-button');
+        $buttons.each(function() {
+            assert.strictEqual($(this).attr('tabindex'), '-1',
+                'button has tabindex=-1 when toolbar is disabled');
+        });
     });
 
     QUnit.test('exactly one tabindex=0 is maintained after sequential navigation', function(assert) {

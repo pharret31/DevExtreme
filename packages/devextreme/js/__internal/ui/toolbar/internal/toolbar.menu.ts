@@ -21,7 +21,6 @@ import Widget from '@ts/core/widget/widget';
 import Button from '@ts/ui/button/wrapper';
 import Popup from '@ts/ui/popup/m_popup';
 import ToolbarMenuList, { TOOLBAR_MENU_ACTION_CLASS } from '@ts/ui/toolbar/internal/toolbar.menu.list';
-import { toggleItemFocusableElementTabIndex } from '@ts/ui/toolbar/toolbar.utils';
 
 export const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
 const DROP_DOWN_MENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
@@ -413,7 +412,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
     value: unknown,
   ): void {
     this._list?._itemOptionChanged(item, property, value);
-    toggleItemFocusableElementTabIndex(this._list, item);
+    this._updateFocusableItemsTabIndex();
   }
 
   _getListDataSource(): DataSourceLike<Item, string | number> | Item[] {
@@ -491,8 +490,9 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
   }
 
   _updateFocusableItemsTabIndex(): void {
-    const { items = [] } = this.option();
-
-    items.forEach((item) => toggleItemFocusableElementTabIndex(this._list, item));
+    if (this._list) {
+      const { focusedElement } = this._list.option();
+      this._list._updateRovingTabIndex($(focusedElement));
+    }
   }
 }
