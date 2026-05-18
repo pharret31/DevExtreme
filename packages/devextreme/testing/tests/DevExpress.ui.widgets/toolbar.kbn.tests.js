@@ -2435,3 +2435,152 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'ArrowRight does not move focus after focusStateEnabled changed to false');
     });
 });
+
+QUnit.module('Non-focusable service items', moduleConfig, function() {
+    QUnit.test('separator template is excluded from _getAvailableItems', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div class="dx-toolbar-separator">') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 2, 'separator template is excluded from available items');
+    });
+
+    QUnit.test('label template (plain text span) is excluded from _getAvailableItems', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<span>').text('Title') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 2, 'label template is excluded from available items');
+    });
+
+    QUnit.test('ArrowRight skips separator and moves to next focusable item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div class="dx-toolbar-separator">') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $itemA = $available.eq(0);
+        const $itemC = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($itemA).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($itemA).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemC.get(0),
+            'ArrowRight skipped separator and landed on C');
+    });
+
+    QUnit.test('ArrowLeft skips separator and moves to previous focusable item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div class="dx-toolbar-separator">') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $itemA = $available.eq(0);
+        const $itemC = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($itemC).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($itemC).get(0), 'ArrowLeft');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemA.get(0),
+            'ArrowLeft skipped separator and landed on A');
+    });
+
+    QUnit.test('Home ignores non-focusable item at the start', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', template: () => $('<div class="dx-toolbar-separator">') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $itemA = $available.eq(0);
+        const $itemB = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($itemB).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($itemB).get(0), 'Home');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemA.get(0),
+            'Home landed on first focusable item, ignoring leading separator');
+    });
+
+    QUnit.test('End ignores non-focusable item at the end', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+                { locateInMenu: 'never', template: () => $('<span>').text('Label') },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        const $itemA = $available.eq(0);
+        const $itemB = $available.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($itemA).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($itemA).get(0), 'End');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $itemB.get(0),
+            'End landed on last focusable item, ignoring trailing label');
+    });
+
+    QUnit.test('non-focusable item does not receive tabindex=0 on init', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div class="dx-toolbar-separator">') },
+                { locateInMenu: 'never', template: () => $('<span>').text('Label') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+            ],
+        });
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $separatorItem = $allItems.eq(1);
+        const $labelItem = $allItems.eq(2);
+
+        assert.strictEqual($separatorItem.find('[tabindex="0"]').length, 0,
+            'separator item has no element with tabindex=0');
+        assert.strictEqual($separatorItem.attr('tabindex'), undefined,
+            'separator item container has no tabindex attribute');
+        assert.strictEqual($labelItem.find('[tabindex="0"]').length, 0,
+            'label item has no element with tabindex=0');
+        assert.strictEqual($labelItem.attr('tabindex'), undefined,
+            'label item container has no tabindex attribute');
+    });
+});
+
