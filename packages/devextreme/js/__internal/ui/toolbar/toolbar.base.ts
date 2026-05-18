@@ -359,10 +359,27 @@ class ToolbarBase<
     return $items.filter(':visible');
   }
 
+  _isItemDisabled($item: dxElementWrapper): boolean {
+    if (this.option('disabled')) {
+      return true;
+    }
+
+    if ($item.hasClass('dx-state-disabled')) {
+      return true;
+    }
+
+    const $widget = $item.find('.dx-widget').first();
+    if ($widget.length && $widget.hasClass('dx-state-disabled')) {
+      return true;
+    }
+
+    return false;
+  }
+
   _getAvailableItems($itemElements?: dxElementWrapper): dxElementWrapper {
     const $visible = this._getVisibleItems($itemElements);
     const elements = Array.from($visible.toArray()).filter(
-      (item) => !!getItemFocusTarget($(item))?.length,
+      (item) => !this._isItemDisabled($(item)) && !!getItemFocusTarget($(item))?.length,
     );
 
     return $(elements) as unknown as dxElementWrapper;
@@ -373,59 +390,86 @@ class ToolbarBase<
     this._updateRovingTabIndex($target);
   }
 
+  _getItemTabIndex($item: dxElementWrapper): number {
+    const itemData = this._getItemData($item);
+    return (itemData as Item)?.options?.tabIndex ?? 0;
+  }
+
   _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    const $items = this._getAvailableItems();
+    const $allVisible = this._getVisibleItems();
+    const $available = this._getAvailableItems($allVisible);
     let hasActive = false;
 
-    $items.each((_index: number, item: Element): boolean => {
+    $allVisible.each((_index: number, item: Element): boolean => {
       const $item = $(item);
       const $focusTarget = getItemFocusTarget($item);
 
-      if ($focusTarget?.length) {
-        const isActive = !!$activeItem?.length && $item.get(0) === $activeItem.get(0);
-        $focusTarget.attr('tabIndex', isActive ? 0 : -1);
-        if (isActive) {
-          hasActive = true;
-        }
+      if (!$focusTarget?.length) {
+        return true;
+      }
 
+      if (this._isItemDisabled($item)) {
+        $focusTarget.attr('tabIndex', -1);
         const $input = $focusTarget.hasClass('dx-texteditor')
           ? $focusTarget.find('.dx-texteditor-input')
           : undefined;
-
         if ($input?.length) {
-          if (!isActive) {
-            $input.attr('tabIndex', -1);
-          }
-
-          const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
-          if (!hasDropDown && !$focusTarget.attr('role')) {
-            const label = $input.attr('aria-label')
-              ?? $input.attr('placeholder')
-              ?? '';
-            // @ts-expect-error ts-error
-            $focusTarget.attr({
-              role: 'textbox',
-              'aria-readonly': 'true',
-              'aria-label': label,
-            });
-          }
+          $input.attr('tabIndex', -1);
         }
+        return true;
+      }
 
-        const $menu = $item.find('.dx-menu');
-        if ($menu.length) {
-          $menu.attr('tabIndex', -1);
-          $menu.find('[tabindex]').attr('tabIndex', -1);
+      const isActive = !!$activeItem?.length && $item.get(0) === $activeItem.get(0);
+      const activeTabIndex = this._getItemTabIndex($item);
+      const tabIndexValue = isActive ? activeTabIndex : -1;
+      $focusTarget.attr('tabIndex', tabIndexValue);
+      if (isActive) {
+        hasActive = true;
+      }
+
+      const $input = $focusTarget.hasClass('dx-texteditor')
+        ? $focusTarget.find('.dx-texteditor-input')
+        : undefined;
+
+      if ($input?.length) {
+        $input.attr('tabIndex', tabIndexValue);
+
+        const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
+        if (!hasDropDown && !$focusTarget.attr('role')) {
+          const label = $input.attr('aria-label')
+            ?? $input.attr('placeholder')
+            ?? '';
+          // @ts-expect-error ts-error
+          $focusTarget.attr({
+            role: 'textbox',
+            'aria-readonly': 'true',
+            'aria-label': label,
+          });
         }
+      }
+
+      const $menu = $item.find('.dx-menu');
+      if ($menu.length) {
+        $menu.attr('tabIndex', -1);
+        $menu.find('[tabindex]').attr('tabIndex', -1);
       }
 
       return true;
     });
 
     if (!hasActive) {
-      const $first = $items.first();
+      const $first = $available.first();
       if ($first.length) {
         const $firstTarget = getItemFocusTarget($first);
-        $firstTarget?.attr('tabIndex', 0);
+        const firstTabIndex = this._getItemTabIndex($first);
+        $firstTarget?.attr('tabIndex', firstTabIndex);
+
+        const $firstInput = $firstTarget?.hasClass('dx-texteditor')
+          ? $firstTarget.find('.dx-texteditor-input')
+          : undefined;
+        if ($firstInput?.length) {
+          $firstInput.attr('tabIndex', firstTabIndex);
+        }
       }
     }
   }

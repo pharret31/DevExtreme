@@ -1,5 +1,6 @@
 import registerComponent from '@js/core/component_registrator';
 import type { dxElementWrapper } from '@js/core/renderer';
+import $ from '@js/core/renderer';
 import type { Item } from '@js/ui/toolbar';
 import type { OptionChanged } from '@ts/core/widget/types';
 
@@ -7,7 +8,6 @@ import { MultiLineStrategy } from './strategy/toolbar.multiline';
 import { SingleLineStrategy } from './strategy/toolbar.singleline';
 import type { ToolbarBaseProperties } from './toolbar.base';
 import ToolbarBase from './toolbar.base';
-import { toggleItemFocusableElementTabIndex } from './toolbar.utils';
 
 const TOOLBAR_MULTILINE_CLASS = 'dx-toolbar-multiline';
 const TOOLBAR_AUTO_HIDE_TEXT_CLASS = 'dx-toolbar-text-auto-hide';
@@ -154,7 +154,8 @@ class Toolbar extends ToolbarBase<Properties> {
     this._layoutStrategy._itemOptionChanged(item, property, value);
     // @ts-expect-error ts-error
     if (property === 'disabled' || property === 'options.disabled') {
-      toggleItemFocusableElementTabIndex(this, item);
+      const { focusedElement } = this.option();
+      this._updateRovingTabIndex($(focusedElement));
     }
 
     if (property === 'location') {
@@ -163,7 +164,8 @@ class Toolbar extends ToolbarBase<Properties> {
   }
 
   _updateFocusableItemsTabIndex(): void {
-    this._getToolbarItems().forEach((item) => toggleItemFocusableElementTabIndex(this, item));
+    const { focusedElement } = this.option();
+    this._updateRovingTabIndex($(focusedElement));
   }
 
   _isMenuItem(itemData: Item): boolean {
