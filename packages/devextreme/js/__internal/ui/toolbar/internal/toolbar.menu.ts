@@ -358,7 +358,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
     $content.addClass(DROP_DOWN_MENU_LIST_CLASS);
 
     const { itemTemplate, onItemRendered } = this.option();
-
+    const { focusStateEnabled } = this.option();
     this._list = this._createComponent($content, ToolbarMenuList, {
       dataSource: this._getListDataSource(),
       pageLoadMode: 'scrollBottom',
@@ -371,7 +371,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         this._itemClickHandler(e);
       },
       tabIndex: -1,
-      focusStateEnabled: true,
+      focusStateEnabled,
       activeStateEnabled: true,
       onItemRendered,
       _itemAttributes: { role: 'menuitem' },

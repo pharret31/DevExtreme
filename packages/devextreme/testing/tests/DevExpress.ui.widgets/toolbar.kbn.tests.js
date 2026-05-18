@@ -2339,4 +2339,65 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         assert.strictEqual(indexAfter < indexBefore, true, 'RTL: ArrowLeft moved to item with lower DOM index (toward A)');
     });
+
+    QUnit.test('focusStateEnabled:false — roving tabindex is not applied', function(assert) {
+        this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+            ],
+        });
+
+        const $buttons = this.$element.find('.dx-button');
+        const allHaveNaturalTabindex = $buttons.toArray().every(
+            el => $(el).attr('tabindex') === undefined || $(el).attr('tabindex') === '0',
+        );
+        assert.strictEqual(allHaveNaturalTabindex, true,
+            'buttons keep natural tabindex when focusStateEnabled:false');
+    });
+
+    QUnit.test('focusStateEnabled:false propagates to overflow menu and list', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        assert.strictEqual(menu.option('focusStateEnabled'), false,
+            'DropDownMenu inherits focusStateEnabled:false from toolbar');
+
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        assert.strictEqual(menu._list.option('focusStateEnabled'), false,
+            'ToolbarMenuList inherits focusStateEnabled:false from toolbar');
+    });
+
+    QUnit.test('changing focusStateEnabled at runtime propagates to overflow menu and list', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        assert.strictEqual(menu.option('focusStateEnabled'), true, 'menu starts with true');
+        assert.strictEqual(menu._list.option('focusStateEnabled'), true, 'list starts with true');
+
+        toolbar.option('focusStateEnabled', false);
+
+        assert.strictEqual(menu.option('focusStateEnabled'), false,
+            'DropDownMenu gets focusStateEnabled:false after runtime change');
+        assert.strictEqual(menu._list.option('focusStateEnabled'), false,
+            'ToolbarMenuList gets focusStateEnabled:false after runtime change');
+    });
 });

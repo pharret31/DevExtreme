@@ -57,11 +57,13 @@ export class SingleLineStrategy {
 
     const {
       disabled,
+      focusStateEnabled,
       menuContainer,
     } = this._toolbar.option();
 
     this._menu = this._toolbar._createComponent($menu, DropDownMenu, {
       disabled,
+      focusStateEnabled,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       itemTemplate: () => menuItemTemplate,
       onItemClick: (e) => { itemClickAction(e); },
@@ -266,6 +268,7 @@ export class SingleLineStrategy {
   ): void {
     switch (name) {
       case 'disabled':
+      case 'focusStateEnabled':
         this._menu?.option(name, value);
         break;
       case 'overflowMenuVisible':

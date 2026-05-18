@@ -683,6 +683,7 @@ class Popup<
       disabled,
       rtlEnabled,
       items,
+      focusStateEnabled: false,
       useDefaultButtons: useDefaultToolbarButtons,
       useFlatButtons: useFlatToolbarButtons,
       integrationOptions,

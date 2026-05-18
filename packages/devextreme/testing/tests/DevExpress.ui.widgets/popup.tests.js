@@ -385,6 +385,28 @@ QUnit.module('basic', {
         assert.equal($bottomToolbar.text(), 'bottom text', 'bottom toolbar has correct content');
     });
 
+    QUnit.test('popup toolbars have focusStateEnabled: false', function(assert) {
+        const $popup = $('#popup').dxPopup({
+            visible: true,
+            showTitle: true,
+            title: 'Title',
+            toolbarItems: [{ shortcut: 'done' }, { shortcut: 'cancel' }],
+        });
+        const instance = $popup.dxPopup('instance');
+
+        const $bottomToolbar = instance.$content().parent().find('.' + POPUP_BOTTOM_CLASS);
+        const bottomToolbarInstance = $bottomToolbar.dxToolbar('instance');
+
+        assert.strictEqual(bottomToolbarInstance.option('focusStateEnabled'), false,
+            'bottom toolbar has focusStateEnabled: false');
+
+        const $topToolbar = instance.$content().parent().find('.' + POPUP_TITLE_CLASS);
+        const topToolbarInstance = $topToolbar.dxToolbarBase('instance');
+
+        assert.strictEqual(topToolbarInstance.option('focusStateEnabled'), false,
+            'top toolbar has focusStateEnabled: false');
+    });
+
     QUnit.test(`top toolbar has specific ${POPUP_HAS_CLOSE_BUTTON_CLASS} class`, function(assert) {
         $('#popup').dxPopup({ visible: true, showCloseButton: true, showTitle: true });
         const $titleToolbar = $('.' + POPUP_TITLE_CLASS);
