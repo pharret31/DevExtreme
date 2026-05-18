@@ -1,6 +1,5 @@
 import $ from 'jquery';
 import fx from 'common/core/animation/fx';
-import { getItemFocusTarget } from '__internal/ui/toolbar/toolbar.utils';
 import { TOOLBAR_ITEM_CLASS } from '__internal/ui/toolbar/toolbar.base';
 import {
     DROP_DOWN_MENU_BUTTON_CLASS,
@@ -8,7 +7,6 @@ import {
 } from '__internal/ui/toolbar/internal/toolbar.menu';
 import { BUTTON_CLASS } from '__internal/ui/button/button';
 import { LIST_ITEM_CLASS } from '__internal/ui/list/list.base';
-import { TEXTEDITOR_INPUT_CLASS } from '__internal/ui/text_box/m_text_editor.base';
 import {
     DISABLED_STATE_CLASS,
 } from '__internal/core/widget/widget';
@@ -55,6 +53,24 @@ function dispatchKeydown(element, key, options = {}) {
 
 function focusToolbar($toolbar) {
     $toolbar.trigger($.Event('focusin', { target: $toolbar.get(0) }));
+}
+
+function getItemFocusTarget($item) {
+    const $button = $item.find('.dx-button').first();
+    if($button.length) return $button;
+
+    const $textEditor = $item.find('.dx-texteditor').first();
+    if($textEditor.length) return $textEditor;
+
+    const $buttonGroup = $item.find('.dx-buttongroup').first();
+    if($buttonGroup.length) return $buttonGroup;
+
+    if($item.find('.dx-menu').length) return $item;
+
+    const $native = $item.find('button:not([disabled]), input:not([disabled]), a[href]').first();
+    if($native.length) return $native;
+
+    return $item;
 }
 
 const moduleConfig = {
@@ -1217,8 +1233,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
 
         const list = menu._list;
         const $firstItem = list._getAvailableItems().first();
-        const $focusTarget = getItemFocusTarget($firstItem);
-        dispatchKeydown($focusTarget.get(0), 'Tab');
+        dispatchKeydown(getItemFocusTarget($firstItem).get(0), 'Tab');
         this.clock.tick(0);
 
         assert.strictEqual(menu.option('opened'), false, 'Menu closed after Tab');
@@ -1246,8 +1261,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
 
         const list = menu._list;
         const $firstItem = list._getAvailableItems().first();
-        const $focusTarget = getItemFocusTarget($firstItem);
-        dispatchKeydown($focusTarget.get(0), 'Escape');
+        dispatchKeydown(getItemFocusTarget($firstItem).get(0), 'Escape');
         this.clock.tick(0);
 
         assert.strictEqual(menu.option('opened'), false, 'Menu closed after Escape');
@@ -1350,7 +1364,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
 
         const $focusTarget = getItemFocusTarget($templateItem);
         assert.strictEqual(
-            parseInt($focusTarget && $focusTarget.attr('tabindex'), 10),
+            parseInt($focusTarget.attr('tabindex'), 10),
             0,
             'Template item focus target has tabindex=0 after ArrowRight',
         );
@@ -1534,9 +1548,7 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
     });
 
     QUnit.test('Tab after last focusable inside template exits toolbar', function(assert) {
-        // NOT IMPLEMENTED.
-
-        this.$element.dxToolbar({
+        const toolbar = this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
                 {
@@ -1545,12 +1557,12 @@ QUnit.module('Template items (pending)', moduleConfig, function() {
                 },
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
             ],
-        });
+        }).dxToolbar('instance');
 
         const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
         const $templateItem = $allItems.eq(1);
 
-        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($templateItem).get(0) }));
+        toolbar.option('focusedElement', $templateItem.get(0));
         this.clock.tick(0);
 
         dispatchKeydown(getItemFocusTarget($templateItem).get(0), 'Enter');
