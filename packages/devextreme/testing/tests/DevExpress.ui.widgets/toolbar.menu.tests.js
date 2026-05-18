@@ -618,14 +618,15 @@ QUnit.module('widget sizing render', moduleConfig, () => {
             this.keyboard.keyDown('enter');
             assert.ok(this.overflowMenu.popup().option('visible'));
 
-            this.keyboard.keyDown('down');
-            assert.ok(this.overflowMenu.$items().attr('id'), 'first item is active');
+            const $items = this.overflowMenu.$items();
 
-            this.keyboard.keyDown('down');
-            assert.ok(this.overflowMenu.$items().eq(1).attr('id'), 'second item is active');
+            assert.ok($items.eq(0).attr('id'), 'first item is active');
 
-            this.keyboard.keyDown('up');
-            assert.ok(this.overflowMenu.$items().eq(0).attr('id'), 'third item is active');
+            $items.eq(0).get(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+            assert.ok($items.eq(1).attr('id'), 'second item is active');
+
+            $items.eq(1).get(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+            assert.ok($items.eq(0).attr('id'), 'third item is active');
         });
 
         QUnit.test('hide popup on press tab', function(assert) {
@@ -734,7 +735,7 @@ QUnit.module('widget sizing render', moduleConfig, () => {
                 assert.equal(popup.option('visible'), true, 'popup is visible');
 
                 const $button = this.overflowMenu.$popupContent().find(`.${BUTTON_CLASS}`).first();
-                keyboardMock($button).keyDown('space');
+                $button.trigger($.Event('keydown', { key: ' ' }));
                 assert.equal(popup.option('visible'), false, 'space on a dxButton closed popup');
             });
 
@@ -746,7 +747,7 @@ QUnit.module('widget sizing render', moduleConfig, () => {
                 assert.equal(popup.option('visible'), true, 'popup is visible');
 
                 const $button = this.overflowMenu.$popupContent().find(`.${BUTTON_CLASS}`).first();
-                keyboardMock($button).keyDown('enter');
+                $button.trigger($.Event('keydown', { key: 'Enter' }));
                 assert.equal(popup.option('visible'), false, 'enter on a dxButton closed popup');
             });
         });
@@ -760,12 +761,11 @@ QUnit.module('widget sizing render', moduleConfig, () => {
             this.overflowMenu.$button().focusin();
 
             this.keyboard.keyDown('enter');
-            this.keyboard.keyDown('down');
-            this.keyboard.keyDown('enter');
+            const $firstItem = this.overflowMenu.$items().eq(0);
+            $firstItem.trigger($.Event('keydown', { key: 'Enter' }));
 
             this.keyboard.keyDown('enter');
-            this.keyboard.keyDown('down');
-            this.keyboard.keyDown('space');
+            this.overflowMenu.$items().eq(0).trigger($.Event('keydown', { key: ' ' }));
 
             assert.equal(itemClicked, 2, 'item was clicked twice');
         });

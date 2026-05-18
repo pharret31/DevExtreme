@@ -301,10 +301,14 @@ export default class ToolbarMenuList extends ListBase {
     return $(target).closest('.dx-menu').length > 0;
   }
 
+  _getItemFocusTarget($item: dxElementWrapper): dxElementWrapper {
+    return getItemFocusTarget($item) ?? ($item.hasClass(TOOLBAR_MENU_ACTION_CLASS) ? $item : $());
+  }
+
   _getAvailableItems($itemElements?: dxElementWrapper): dxElementWrapper {
     const $visible = this._getVisibleItems($itemElements);
     const elements = Array.from($visible.toArray()).filter(
-      (item) => !!getItemFocusTarget($(item))?.length,
+      (item) => !!this._getItemFocusTarget($(item)).length,
     );
 
     return $(elements) as unknown as dxElementWrapper;
@@ -321,7 +325,7 @@ export default class ToolbarMenuList extends ListBase {
 
     $items.each((_index: number, item: Element): boolean => {
       const $item = $(item);
-      const $focusTarget = getItemFocusTarget($item);
+      const $focusTarget = this._getItemFocusTarget($item);
 
       if ($focusTarget?.length) {
         const isActive = !!$activeItem?.length && $item.get(0) === $activeItem.get(0);
@@ -366,7 +370,7 @@ export default class ToolbarMenuList extends ListBase {
     if (!hasActive) {
       const $first = $items.first();
       if ($first.length) {
-        const $firstTarget = getItemFocusTarget($first);
+        const $firstTarget = this._getItemFocusTarget($first);
         $firstTarget?.attr('tabIndex', 0);
       }
     }
@@ -382,7 +386,7 @@ export default class ToolbarMenuList extends ListBase {
   }
 
   _focusItemWidget($item: dxElementWrapper): void {
-    const $focusTarget = getItemFocusTarget($item);
+    const $focusTarget = this._getItemFocusTarget($item);
     if (!$focusTarget?.length) {
       return;
     }
