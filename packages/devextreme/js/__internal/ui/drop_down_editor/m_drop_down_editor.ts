@@ -158,10 +158,12 @@ class DropDownEditor<
           : this._getFirstPopupElement();
 
         if ($focusableElement) {
+          const $input = $focusableElement.hasClass('dx-texteditor') ? $focusableElement.find('.dx-texteditor-input').first() : $();
+          const $focusTarget = $input.length ? $input : $focusableElement;
           // @ts-expect-error ts-error
-          eventsEngine.trigger($focusableElement, 'focus');
+          eventsEngine.trigger($focusTarget, 'focus');
           // @ts-expect-error ts-error
-          $focusableElement.select();
+          $focusTarget.select();
         }
         e.preventDefault();
       },

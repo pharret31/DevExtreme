@@ -390,35 +390,42 @@ QUnit.module('dxDropDownEditor', testEnvironment, () => {
 
 QUnit.module('focus policy', () => {
     QUnit.testInActiveWindow('editor should save focus on button clicking', function(assert) {
-        const $dropDownEditor = $('#dropDownEditorLazy').dxDropDownEditor({
-            applyValueMode: 'useButtons',
-            focusStateEnabled: true
-        });
+        const clock = sinon.useFakeTimers();
 
-        const instance = $dropDownEditor.dxDropDownEditor('instance');
+        try {
+            const $dropDownEditor = $('#dropDownEditorLazy').dxDropDownEditor({
+                applyValueMode: 'useButtons',
+                focusStateEnabled: true
+            });
 
-        instance.open();
+            const instance = $dropDownEditor.dxDropDownEditor('instance');
 
-        const $buttons = instance._popup.$wrapper().find('.dx-button');
+            instance.open();
 
-        $.each($buttons, function(index, button) {
-            const $button = $(button);
-            const buttonInstance = $button.dxButton('instance');
-            instance.focus();
-            $button.focus();
+            const $buttons = instance._popup.$wrapper().find('.dx-button');
 
-            const pointer = pointerMock(button);
+            $.each($buttons, function(index, button) {
+                const $button = $(button);
+                const buttonInstance = $button.dxButton('instance');
+                instance.focus();
+                $button.focus();
 
-            assert.ok(!$dropDownEditor.hasClass('dx-state-focused') || !buttonInstance.option('focusStateEnabled'), 'dropDownEditor lose focus after click on button, nested into overlay');
+                const pointer = pointerMock(button);
 
-            pointer.click();
+                assert.ok(!$dropDownEditor.hasClass('dx-state-focused') || !buttonInstance.option('focusStateEnabled'), 'dropDownEditor lose focus after click on button, nested into overlay');
 
-            if(!instance.option('opened')) {
-                assert.ok($dropDownEditor.hasClass('dx-state-focused'), 'dropDownEditor obtained focus after popup button click with close action');
-            } else {
-                instance.option('opened', false);
-            }
-        });
+                pointer.click();
+                clock.tick(0);
+
+                if(!instance.option('opened')) {
+                    assert.ok($dropDownEditor.hasClass('dx-state-focused'), 'dropDownEditor obtained focus after popup button click with close action');
+                } else {
+                    instance.option('opened', false);
+                }
+            });
+        } finally {
+            clock.restore();
+        }
     });
 
     QUnit.testInActiveWindow('editor should save focus on clearbutton clicking, fieldTemplate is used', function(assert) {

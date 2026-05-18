@@ -925,7 +925,7 @@ QUnit.module('AIDialog', () => {
             this.promise.then(() => {
                 try {
                     const $replaceButton = this.$element.find(`.${BUTTON_GROUP_CLASS}`);
-                    keyboardMock($replaceButton).press('enter');
+                    $replaceButton.trigger($.Event('keydown', { key: 'Enter' }));
 
                     assert.ok(true, 'There is no error');
                 } catch(e) {
