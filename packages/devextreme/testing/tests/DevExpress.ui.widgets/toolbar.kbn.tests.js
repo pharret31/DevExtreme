@@ -2400,4 +2400,38 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual(menu._list.option('focusStateEnabled'), false,
             'ToolbarMenuList gets focusStateEnabled:false after runtime change');
     });
+
+    QUnit.test('changing focusStateEnabled at runtime toggles keyboard navigation', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        const $firstFocusTarget = getItemFocusTarget($items.first());
+        const $secondItem = $items.eq(1).get(0);
+
+        this.$element.trigger($.Event('focusin', { target: $firstFocusTarget.get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown($firstFocusTarget.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $secondItem,
+            'ArrowRight moves focus to second item when focusStateEnabled:true');
+
+        toolbar.option('focusStateEnabled', false);
+
+        const focusBefore = toolbar.option('focusedElement');
+        dispatchKeydown($firstFocusTarget.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const focusAfterDisabled = toolbar.option('focusedElement');
+        assert.strictEqual(focusBefore, focusAfterDisabled,
+            'ArrowRight does not move focus after focusStateEnabled changed to false');
+    });
 });
