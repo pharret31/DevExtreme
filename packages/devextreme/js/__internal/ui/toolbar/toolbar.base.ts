@@ -396,11 +396,11 @@ class ToolbarBase<
   }
 
   _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    const $allVisible = this._getVisibleItems();
-    const $available = this._getAvailableItems($allVisible);
+    const $allItems = this._itemContainer().find(`${this._itemSelector()}, .dx-dropdownmenu-button`);
+    const $available = this._getAvailableItems();
     let hasActive = false;
 
-    $allVisible.each((_index: number, item: Element): boolean => {
+    $allItems.each((_index: number, item: Element): boolean => {
       const $item = $(item);
       const $focusTarget = getItemFocusTarget($item);
 
@@ -408,7 +408,7 @@ class ToolbarBase<
         return true;
       }
 
-      if (this._isItemDisabled($item)) {
+      if (!$item.is(':visible') || this._isItemDisabled($item)) {
         $focusTarget.attr('tabIndex', -1);
         const $input = $focusTarget.hasClass('dx-texteditor')
           ? $focusTarget.find('.dx-texteditor-input')

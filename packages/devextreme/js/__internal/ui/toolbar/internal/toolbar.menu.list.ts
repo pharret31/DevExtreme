@@ -338,6 +338,7 @@ export default class ToolbarMenuList extends ListBase {
 
   _getItemTabIndex($item: dxElementWrapper): number {
     const itemData = this._getItemData($item);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return (itemData as Item)?.options?.tabIndex ?? 0;
   }
 

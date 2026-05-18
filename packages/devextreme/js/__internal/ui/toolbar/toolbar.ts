@@ -47,6 +47,8 @@ class Toolbar extends ToolbarBase<Properties> {
     super._dimensionChanged();
 
     this._layoutStrategy._dimensionChanged();
+
+    this._updateFocusableItemsTabIndex();
   }
 
   _initMarkup(): void {
