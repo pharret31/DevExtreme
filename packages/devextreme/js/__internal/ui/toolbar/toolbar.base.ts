@@ -392,10 +392,15 @@ class ToolbarBase<
 
   _getItemTabIndex($item: dxElementWrapper): number {
     const itemData = this._getItemData($item);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return (itemData as Item)?.options?.tabIndex ?? 0;
   }
 
   _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
+    if (!this.option('focusStateEnabled')) {
+      return;
+    }
+
     const $allItems = this._itemContainer().find(`${this._itemSelector()}, .dx-dropdownmenu-button`);
     const $available = this._getAvailableItems();
     let hasActive = false;

@@ -1885,6 +1885,47 @@ QUnit.module('Overflow menu', moduleConfig, function() {
             'Focus lands on first available (non-disabled) menu item, skipping disabled leading items',
         );
     });
+
+    QUnit.test('focused menu item does not get dx-state-focused class', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        menu.openWithFocus('first');
+        this.clock.tick(0);
+
+        const list = menu._list;
+        const $items = list._getAvailableItems();
+        const $firstItem = $items.first();
+
+        assert.strictEqual($firstItem.hasClass('dx-state-focused'), false,
+            'focused list item does not have dx-state-focused');
+    });
+
+    QUnit.test('navigating menu items never adds dx-state-focused to list items', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        menu.openWithFocus('first');
+        this.clock.tick(0);
+
+        const list = menu._list;
+        const $items = list._getAvailableItems();
+        const $firstFocusTarget = getItemFocusTarget($items.first());
+
+        dispatchKeydown($firstFocusTarget.get(0), 'ArrowDown');
+        this.clock.tick(0);
+
+        const $focused = $(list.option('focusedElement'));
+        assert.strictEqual($focused.hasClass('dx-state-focused'), false,
+            'second item does not have dx-state-focused after ArrowDown');
+
+        assert.strictEqual($items.first().hasClass('dx-state-focused'), false,
+            'first item lost dx-state-focused class');
+
+        const $allFocused = list.$element().find('.dx-list-item.dx-state-focused');
+        assert.strictEqual($allFocused.length, 0,
+            'no dx-state-focused list items in the menu list');
+    });
 });
 
 QUnit.module('Template items (pending)', moduleConfig, function() {

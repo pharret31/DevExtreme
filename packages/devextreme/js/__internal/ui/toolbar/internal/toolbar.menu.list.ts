@@ -35,6 +35,12 @@ export default class ToolbarMenuList extends ListBase {
     return `.${TOOLBAR_MENU_ACTION_CLASS}:not(.${TOOLBAR_HIDDEN_BUTTON_GROUP_CLASS})`;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _toggleFocusClass(_isFocused: boolean, _$element?: dxElementWrapper): void {
+    // Intentionally empty: visual focus is managed by setItemWidgetFocusState on inner widgets,
+    // not by dx-state-focused on the list item container.
+  }
+
   _initMarkup(): void {
     this._renderSections();
     super._initMarkup();
