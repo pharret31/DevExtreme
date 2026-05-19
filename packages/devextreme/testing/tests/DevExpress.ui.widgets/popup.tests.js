@@ -401,7 +401,7 @@ QUnit.module('basic', {
             'bottom toolbar has focusStateEnabled: false');
 
         const $topToolbar = instance.$content().parent().find('.' + POPUP_TITLE_CLASS);
-        const topToolbarInstance = $topToolbar.dxToolbarBase('instance');
+        const topToolbarInstance = $topToolbar.dxToolbar('instance');
 
         assert.strictEqual(topToolbarInstance.option('focusStateEnabled'), false,
             'top toolbar has focusStateEnabled: false');
