@@ -60,8 +60,8 @@ const openDropDownMenuIfExist = (toolbar) => {
     ['never', 'always'].forEach((locateInMenu) => {
         [
             { widget: 'dxButton', focusableElementSelector: '.dx-button:not(.dx-dropdownmenu-button)' },
-            { widget: 'dxTextBox', focusableElementSelector: '.dx-textbox .dx-texteditor-input' },
-            { widget: 'dxSelectBox', focusableElementSelector: '.dx-selectbox .dx-texteditor-input' },
+            { widget: 'dxTextBox', focusableElementSelector: focusStateEnabled ? '.dx-textbox' : '.dx-textbox .dx-texteditor-input' },
+            { widget: 'dxSelectBox', focusableElementSelector: focusStateEnabled ? '.dx-selectbox' : '.dx-selectbox .dx-texteditor-input' },
             { widget: 'dxDropDownButton', focusableElementSelector: '.dx-dropdownbutton .dx-buttongroup' },
         // { widget: 'dxAutocomplete', focusableElementSelector: '.dx-autocomplete .dx-texteditor-input' },
         // { widget: 'dxCheckBox', focusableElementSelector: '.dx-checkbox' },

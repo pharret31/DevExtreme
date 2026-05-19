@@ -70,7 +70,14 @@ export function setItemWidgetFocusState($item: dxElementWrapper, isFocused: bool
   const itemInstance = getItemInstance($widget);
 
   if (itemInstance && typeof itemInstance._toggleFocusClass === 'function') {
-    itemInstance._toggleFocusClass(isFocused);
+    if ($widget.hasClass('dx-menu')) {
+      $item.toggleClass('dx-state-focused', isFocused);
+    } else if ($widget.hasClass('dx-texteditor')) {
+      // TODO: text editors have an editing mode activated by Enter;
+      // do not show dx-state-focused during roving-tabindex navigation
+    } else {
+      itemInstance._toggleFocusClass(isFocused, getItemFocusTarget($item));
+    }
   }
 }
 

@@ -1452,7 +1452,7 @@ QUnit.module('adaptivity', moduleConfig, () => {
         $($item2).trigger('dxpointerdown');
         this.clock.tick(10);
 
-        assert.ok($item2.hasClass('dx-state-focused'), 'only item2 is focused');
+        assert.ok(!$item2.hasClass('dx-state-focused'), 'item2 is not focused');
         assert.ok(!$item1.hasClass('dx-state-focused'), 'item1 is not focused');
     });
 

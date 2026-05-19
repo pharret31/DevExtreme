@@ -205,6 +205,7 @@ class ToolbarBase<
         const $menu = $item.find('.dx-menu').first();
         if ($menu.length) {
           e.preventDefault();
+          setItemWidgetFocusState($item, false);
           const menuInstance = $menu.data('dxMenu');
           if (menuInstance) {
             // @ts-expect-error
@@ -437,7 +438,7 @@ class ToolbarBase<
         : undefined;
 
       if ($input?.length) {
-        $input.attr('tabIndex', tabIndexValue);
+        $input.attr('tabIndex', -1);
 
         const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
         if (!hasDropDown && !$focusTarget.attr('role')) {
@@ -473,7 +474,7 @@ class ToolbarBase<
           ? $firstTarget.find('.dx-texteditor-input')
           : undefined;
         if ($firstInput?.length) {
-          $firstInput.attr('tabIndex', firstTabIndex);
+          $firstInput.attr('tabIndex', -1);
         }
       }
     }

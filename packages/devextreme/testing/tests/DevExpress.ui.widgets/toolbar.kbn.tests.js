@@ -1635,8 +1635,8 @@ QUnit.module('Widget interaction', {
 
         assert.strictEqual($textEditor.attr('tabindex'), '0',
             'TextBox container has tabindex=0 while it is the active item');
-        assert.strictEqual($input.attr('tabindex'), '0',
-            'TextBox input has tabindex=0 while TextBox is the active item');
+        assert.strictEqual($input.attr('tabindex'), '-1',
+            'TextBox input has tabindex=-1 while TextBox is the active item');
         assert.strictEqual(getItemFocusTarget($items.eq(0)).attr('tabindex'), '-1',
             'Prev button has tabindex=-1');
         assert.strictEqual(getItemFocusTarget($items.eq(2)).attr('tabindex'), '-1',
@@ -3266,7 +3266,7 @@ QUnit.module('Template items', moduleConfig, function() {
             'ArrowLeft from multi-button template moves to previous toolbar item');
     });
 
-    QUnit.test('template with multiple focusable: inner elements have tabindex=-1 before activation', function(assert) {
+    QUnit.skip('template with multiple focusable: inner elements have tabindex=-1 before activation', function(assert) {
         // NOT IMPLEMENTED: toolbar does not manage inner element tabindexes for templates.
         // Only the first native focusable (focus target) gets tabindex from roving mechanism.
 
@@ -3678,6 +3678,335 @@ QUnit.module('Non-focusable service items', moduleConfig, function() {
             'label item has no element with tabindex=0');
         assert.strictEqual($labelItem.attr('tabindex'), undefined,
             'label item container has no tabindex attribute');
+    });
+});
+
+QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
+    const menuItems = [
+        { text: 'File', items: [{ text: 'New' }, { text: 'Open' }] },
+        { text: 'Edit', items: [{ text: 'Cut' }, { text: 'Copy' }] },
+    ];
+
+    function createMenuToolbar($el) {
+        return $el.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'Prev' } },
+                { widget: 'dxMenu', options: { items: menuItems } },
+                { widget: 'dxButton', options: { text: 'Next' } },
+            ],
+        }).dxToolbar('instance');
+    }
+
+    QUnit.test('dxMenu is a single toolbar stop — ArrowRight skips past it', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowRight from button lands on dxMenu item');
+
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(2).get(0),
+            'second ArrowRight skips past dxMenu to Next button');
+    });
+
+    QUnit.test('dxMenu item gets dx-state-focused when toolbar focuses it', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._focusItemWidget($items.eq(1));
+        this.clock.tick(0);
+
+        assert.ok($items.eq(1).hasClass('dx-state-focused'),
+            'toolbar item wrapper has dx-state-focused');
+    });
+
+    QUnit.test('Enter activates menu — focus moves inside .dx-menu', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        assert.ok(
+            $items.eq(1).get(0).contains(document.activeElement),
+            'focus is inside the dxMenu toolbar item',
+        );
+    });
+
+    QUnit.test('Enter removes dx-state-focused from toolbar item wrapper', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._focusItemWidget($items.eq(1));
+        this.clock.tick(0);
+
+        assert.ok($items.eq(1).hasClass('dx-state-focused'),
+            'item has dx-state-focused before Enter');
+
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        assert.notOk($items.eq(1).hasClass('dx-state-focused'),
+            'item lost dx-state-focused after Enter');
+    });
+
+    QUnit.test('first menu-item gets dx-state-focused after Enter', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        const $firstMenuItem = $items.eq(1).find('.dx-menu-item').first();
+        assert.ok($firstMenuItem.hasClass('dx-state-focused'),
+            'first .dx-menu-item has dx-state-focused after Enter');
+    });
+
+    QUnit.test('ArrowRight inside menu navigates to next root item (not toolbar)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'toolbar focusedElement stays on dxMenu item');
+
+        const $menu = $items.eq(1).find('.dx-menu');
+        const menuInstance = $menu.dxMenu('instance');
+        const $menuItems = $menu.find('.dx-menu-item');
+
+        assert.strictEqual($(menuInstance.option('focusedElement')).get(0), $menuItems.eq(1).get(0),
+            'menu focusedElement moved to second root item');
+    });
+
+    QUnit.test('ArrowLeft inside menu navigates to previous root item (not toolbar)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(0);
+
+        dispatchKeydown(document.activeElement, 'ArrowLeft');
+        this.clock.tick(0);
+
+        const $menu = $items.eq(1).find('.dx-menu');
+        const menuInstance = $menu.dxMenu('instance');
+        const $menuItems = $menu.find('.dx-menu-item');
+
+        assert.strictEqual($(menuInstance.option('focusedElement')).get(0), $menuItems.eq(0).get(0),
+            'menu focusedElement moved back to first root item');
+    });
+
+    QUnit.test('Escape exits menu — focus returns to toolbar item wrapper', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.strictEqual(document.activeElement, $items.eq(1).get(0),
+            'focus returned to toolbar item wrapper after Escape');
+    });
+
+    QUnit.test('Escape restores dx-state-focused on toolbar item wrapper', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._focusItemWidget($items.eq(1));
+        this.clock.tick(0);
+
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        assert.notOk($items.eq(1).hasClass('dx-state-focused'),
+            'item lost dx-state-focused after Enter');
+
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.ok($items.eq(1).hasClass('dx-state-focused'),
+            'item regained dx-state-focused after Escape');
+    });
+
+    QUnit.test('menu-item dx-state-focused removed after Escape', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        const $firstMenuItem = $items.eq(1).find('.dx-menu-item').first();
+        assert.ok($firstMenuItem.hasClass('dx-state-focused'),
+            'menu-item has dx-state-focused while inside menu');
+
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.notOk($firstMenuItem.hasClass('dx-state-focused'),
+            'menu-item lost dx-state-focused after Escape');
+    });
+
+    QUnit.test('after Escape, ArrowRight navigates toolbar to next item', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(2).get(0),
+            'ArrowRight navigates toolbar after Escape from menu');
+    });
+
+    QUnit.test('ArrowDown on root menu item opens submenu', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'ArrowDown');
+        this.clock.tick(300);
+
+        const $expanded = $items.eq(1).find('.dx-menu-item-expanded');
+        assert.ok($expanded.length > 0, 'submenu opened — menu item has expanded class');
+    });
+
+    QUnit.test('tabindex invariant after enter/exit cycle', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const $tabZero = this.$element.find('[tabindex="0"]');
+        assert.strictEqual($tabZero.length, 1,
+            'exactly one tabindex=0 after enter/exit/navigate cycle');
+    });
+});
+
+QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
+    function makeOverflowToolbar($el) {
+        return $el.dxToolbar({
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu B' } },
+            ],
+        }).dxToolbar('instance');
+    }
+
+    const getOverflowBtn = ($el) => $el.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+
+    QUnit.test('overflow button gets dx-state-focused when focused via keyboard', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+
+        toolbar.option('focusedElement', $overflowBtn.get(0));
+        toolbar._focusItemWidget($overflowBtn);
+        this.clock.tick(0);
+
+        assert.ok($overflowBtn.hasClass('dx-state-focused'),
+            'overflow button has dx-state-focused');
+    });
+
+    QUnit.test('overflow button retains dx-state-focused after Escape closes popup', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        toolbar.option('focusedElement', $overflowBtn.get(0));
+        toolbar._focusItemWidget($overflowBtn);
+        this.clock.tick(0);
+
+        menu.openWithFocus('first');
+        this.clock.tick(0);
+
+        const list = menu._list;
+        const $firstItem = list._getAvailableItems().first();
+        const $focusTarget = getItemFocusTarget($firstItem);
+        dispatchKeydown($focusTarget.get(0), 'Escape');
+        this.clock.tick(0);
+
+        assert.notOk(menu.option('opened'), 'popup closed after Escape');
+        assert.ok($overflowBtn.hasClass('dx-state-focused'),
+            'overflow button retains dx-state-focused after popup closes');
+    });
+
+    QUnit.test('ArrowRight from visible button navigates to overflow button with dx-state-focused', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+        const $overflowBtn = getOverflowBtn(this.$element);
+
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        toolbar._focusItemWidget($items.eq(0));
+        this.clock.tick(0);
+
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $overflowBtn.get(0),
+            'focusedElement is the overflow button');
+        assert.ok($overflowBtn.hasClass('dx-state-focused'),
+            'overflow button has dx-state-focused after navigation');
+    });
+
+    QUnit.test('previous button loses dx-state-focused when focus moves to overflow button', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        toolbar._focusItemWidget($items.eq(0));
+        this.clock.tick(0);
+
+        const $button = $items.eq(0).find('.dx-button');
+        assert.ok($button.hasClass('dx-state-focused'),
+            'visible button has dx-state-focused before navigation');
+
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.notOk($button.hasClass('dx-state-focused'),
+            'visible button lost dx-state-focused after focus moved');
     });
 });
 

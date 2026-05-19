@@ -385,7 +385,7 @@ export default class ToolbarMenuList extends ListBase {
         : undefined;
 
       if ($input?.length) {
-        $input.attr('tabIndex', tabIndexValue);
+        $input.attr('tabIndex', -1);
 
         const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
         if (!hasDropDown && !$focusTarget.attr('role')) {
@@ -421,7 +421,7 @@ export default class ToolbarMenuList extends ListBase {
           ? $firstTarget.find('.dx-texteditor-input')
           : undefined;
         if ($firstInput?.length) {
-          $firstInput.attr('tabIndex', firstTabIndex);
+          $firstInput.attr('tabIndex', -1);
         }
       }
     }
