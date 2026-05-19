@@ -3,7 +3,7 @@ import url from '../../../helpers/getPageUrl';
 import { createWidget } from '../../../helpers/createWidget';
 import { appendElementTo } from '../../../helpers/domUtils';
 
-fixture.only.disablePageReloads`Toolbar_keyboard_navigation`
+fixture.disablePageReloads`Toolbar_keyboard_navigation`
   .page(url(__dirname, '../../container.html'));
 
 const isFocusInsideItem = ClientFunction((itemIndex: number) => {
