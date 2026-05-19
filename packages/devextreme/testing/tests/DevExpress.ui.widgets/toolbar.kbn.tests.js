@@ -1336,7 +1336,7 @@ QUnit.module('Widget interaction', {
         const dropDownButton = getDropDownButton(this.$element);
         assert.strictEqual(dropDownButton.option('opened'), true, 'popup opened');
 
-        const $listItem = dropDownButton._list.$element().find('.dx-list-item').first();
+        const $listItem = $(dropDownButton._list.$element().find('.dx-list-item').first());
         $listItem.trigger('dxclick');
         this.clock.tick(300);
 
@@ -1358,7 +1358,7 @@ QUnit.module('Widget interaction', {
         const dropDownButton = getDropDownButton(this.$element);
         assert.strictEqual(dropDownButton.option('opened'), true, 'popup opened');
 
-        const $listItem = dropDownButton._list.$element().find('.dx-list-item').first();
+        const $listItem = $(dropDownButton._list.$element().find('.dx-list-item').first());
         $listItem.get(0).focus();
         this.clock.tick(0);
 
@@ -1377,7 +1377,7 @@ QUnit.module('Widget interaction', {
         this.clock.tick(300);
 
         const dropDownButton = getDropDownButton(this.$element);
-        const $listItem = dropDownButton._list.$element().find('.dx-list-item').first();
+        const $listItem = $(dropDownButton._list.$element().find('.dx-list-item').first());
         $listItem.trigger('dxclick');
         this.clock.tick(300);
 
