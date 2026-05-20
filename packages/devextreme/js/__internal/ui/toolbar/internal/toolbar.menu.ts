@@ -45,7 +45,7 @@ export interface DropDownMenuProperties extends WidgetProperties<DropDownMenu> {
   onButtonClick?: (e: ClickEvent) => void;
   useInkRipple?: boolean;
   closeOnClick?: boolean;
-  listFocusStateEnabled: boolean;
+  listFocusStateEnabled?: boolean;
 }
 
 export default class DropDownMenu extends Widget<DropDownMenuProperties> {
