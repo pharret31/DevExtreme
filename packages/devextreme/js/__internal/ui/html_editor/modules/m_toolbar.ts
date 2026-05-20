@@ -209,6 +209,7 @@ if (Quill) {
     get toolbarConfig() {
       return {
         dataSource: this._prepareToolbarItems(),
+        focusStateEnabled: false,
         disabled: this.isInteractionDisabled,
         menuContainer: this._$toolbarContainer,
         multiline: this.isMultilineMode(),

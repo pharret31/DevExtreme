@@ -166,7 +166,6 @@ class FileManagerToolbar extends Widget<FileManagerToolbarOptions> {
 
   _isRefreshVisibleInFileToolbar?: boolean;
 
-  // eslint-disable-next-line no-restricted-globals
   _refreshItemTextTimeout?: ReturnType<typeof setTimeout>;
 
   _init(): void {
@@ -224,6 +223,7 @@ class FileManagerToolbar extends Widget<FileManagerToolbarOptions> {
     const $toolbar = $('<div>').appendTo(this.$element());
     const toolbar = this._createComponent($toolbar, Toolbar, {
       items: toolbarItems,
+      focusStateEnabled: false,
       visible: !hidden,
       onItemClick: (args) => this._raiseItemClicked(args),
     }) as Toolbar & { compactMode?: boolean };
@@ -732,7 +732,7 @@ class FileManagerToolbar extends Widget<FileManagerToolbarOptions> {
     isDeferredUpdate,
     text,
     showText,
-    // eslint-disable-next-line no-restricted-globals
+
   ): ReturnType<typeof setTimeout> | undefined {
     const options = {
       showText,

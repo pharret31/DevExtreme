@@ -623,15 +623,15 @@ QUnit.module('widget sizing render', moduleConfig, () => {
 
             $items.eq(0).get(0).dispatchEvent(new Event('focusin', { bubbles: true }));
             const $focused0 = $(list.option('focusedElement'));
-            assert.ok($focused0.get(0) === $items.eq(0).get(0), 'first item is active');
+            assert.strictEqual($focused0.get(0), $items.eq(0).get(0), 'first item is active');
 
             $items.eq(0).get(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
             const $focused1 = $(list.option('focusedElement'));
-            assert.ok($focused1.get(0) === $items.eq(1).get(0), 'second item is active');
+            assert.strictEqual($focused1.get(0), $items.eq(1).get(0), 'second item is active');
 
             $items.eq(1).get(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
             const $focused2 = $(list.option('focusedElement'));
-            assert.ok($focused2.get(0) === $items.eq(0).get(0), 'first item is active again');
+            assert.strictEqual($focused2.get(0), $items.eq(0).get(0), 'first item is active again');
         });
 
         QUnit.test('hide popup on press tab', function(assert) {

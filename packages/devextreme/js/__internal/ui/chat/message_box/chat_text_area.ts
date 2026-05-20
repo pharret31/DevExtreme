@@ -278,6 +278,7 @@ class ChatTextArea extends TextArea<Properties> {
 
     const toolbarOptions = {
       items: toolbarItems,
+      focusStateEnabled: false,
     };
 
     this._$toolbar = $('<div>')
