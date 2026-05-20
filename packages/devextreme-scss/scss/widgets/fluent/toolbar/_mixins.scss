@@ -1,5 +1,6 @@
 @use "sizes" as *;
 @use "../typography/sizes" as *;
+@use "../colors" as *;
 
 @mixin dx-toolbar-sizing($height, $padding, $label-font-size, $item-spacing) {
   padding: $padding;
@@ -58,4 +59,10 @@
   &:first-child {
     padding: 0;
   }
+}
+
+@mixin dx-toolbar-focus-outline() {
+  outline: 2px solid $base-accent;
+  outline-offset: 1px;
+  border-radius: 4px;
 }
