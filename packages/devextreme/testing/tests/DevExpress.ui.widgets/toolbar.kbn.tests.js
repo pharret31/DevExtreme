@@ -2508,6 +2508,28 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         );
     });
 
+    QUnit.test('ArrowUp on overflow button opens menu; last item focused', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+        const $overflowBtn = getOverflowBtn(this.$element);
+
+        toolbar.option('focusedElement', $overflowBtn.get(0));
+        dispatchKeydown($overflowBtn.get(0), 'ArrowUp');
+        this.clock.tick(0);
+
+        assert.strictEqual(menu.option('opened'), true, 'Menu opened via ArrowUp');
+
+        const list = menu._list;
+        const $items = list._getAvailableItems();
+        const $lastItem = $items.last();
+        const $focusTarget = getItemFocusTarget($lastItem);
+        assert.strictEqual(
+            document.activeElement,
+            $focusTarget.get(0),
+            'Last menu item is focused after ArrowUp',
+        );
+    });
+
     QUnit.test('disabled items inside menu are skipped by ArrowDown', function(assert) {
         const toolbar = this.$element.dxToolbar({
             items: [
@@ -3454,7 +3476,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'buttons keep natural tabindex when focusStateEnabled:false');
     });
 
-    QUnit.test('focusStateEnabled:false propagates to overflow menu and list', function(assert) {
+    QUnit.test('focusStateEnabled:false propagates to overflow menu list but not to DropDownMenu itself', function(assert) {
         const toolbar = this.$element.dxToolbar({
             focusStateEnabled: false,
             items: [
@@ -3464,17 +3486,19 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         }).dxToolbar('instance');
 
         const menu = toolbar._layoutStrategy._menu;
-        assert.strictEqual(menu.option('focusStateEnabled'), false,
-            'DropDownMenu inherits focusStateEnabled:false from toolbar');
+        assert.strictEqual(menu.option('focusStateEnabled'), true,
+            'DropDownMenu keeps its own focusStateEnabled:true (default)');
+        assert.strictEqual(menu.option('listFocusStateEnabled'), false,
+            'DropDownMenu receives listFocusStateEnabled:false from toolbar');
 
         menu.option('opened', true);
         this.clock.tick(0);
 
         assert.strictEqual(menu._list.option('focusStateEnabled'), false,
-            'ToolbarMenuList inherits focusStateEnabled:false from toolbar');
+            'ToolbarMenuList gets focusStateEnabled:false via listFocusStateEnabled');
     });
 
-    QUnit.test('changing focusStateEnabled at runtime propagates to overflow menu and list', function(assert) {
+    QUnit.test('changing focusStateEnabled at runtime propagates listFocusStateEnabled to menu and list', function(assert) {
         const toolbar = this.$element.dxToolbar({
             focusStateEnabled: true,
             items: [
@@ -3487,13 +3511,16 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         menu.option('opened', true);
         this.clock.tick(0);
 
-        assert.strictEqual(menu.option('focusStateEnabled'), true, 'menu starts with true');
-        assert.strictEqual(menu._list.option('focusStateEnabled'), true, 'list starts with true');
+        assert.strictEqual(menu.option('focusStateEnabled'), true, 'menu starts with focusStateEnabled:true');
+        assert.strictEqual(menu.option('listFocusStateEnabled'), true, 'menu starts with listFocusStateEnabled:true');
+        assert.strictEqual(menu._list.option('focusStateEnabled'), true, 'list starts with focusStateEnabled:true');
 
         toolbar.option('focusStateEnabled', false);
 
-        assert.strictEqual(menu.option('focusStateEnabled'), false,
-            'DropDownMenu gets focusStateEnabled:false after runtime change');
+        assert.strictEqual(menu.option('focusStateEnabled'), true,
+            'DropDownMenu keeps its own focusStateEnabled:true after runtime change');
+        assert.strictEqual(menu.option('listFocusStateEnabled'), false,
+            'DropDownMenu gets listFocusStateEnabled:false after runtime change');
         assert.strictEqual(menu._list.option('focusStateEnabled'), false,
             'ToolbarMenuList gets focusStateEnabled:false after runtime change');
     });
@@ -3530,6 +3557,147 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         const focusAfterDisabled = toolbar.option('focusedElement');
         assert.strictEqual(focusBefore, focusAfterDisabled,
             'ArrowRight does not move focus after focusStateEnabled changed to false');
+    });
+
+    QUnit.test('focusStateEnabled:false — overflow menu items use toggleItemFocusableElementTabIndex (not roving)', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu B' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $listItems = menu._list.$element().find('.dx-list-item');
+        const allButtonsHaveTabindex = $listItems.toArray().every(el => {
+            const $btn = $(el).find('.dx-button');
+            return $btn.length === 0 || $btn.attr('tabindex') === '0' || $btn.attr('tabindex') === undefined;
+        });
+        assert.strictEqual(allButtonsHaveTabindex, true,
+            'menu items use natural tabindex (toggleItemFocusableElementTabIndex) when focusStateEnabled:false');
+    });
+
+    QUnit.test('focusStateEnabled:false — opening overflow menu does not auto-focus items', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const focusedElement = menu._list.option('focusedElement');
+        assert.strictEqual(focusedElement, null,
+            'no item auto-focused on open when focusStateEnabled:false');
+    });
+
+    QUnit.test('focusStateEnabled:true — overflow menu uses roving tabindex', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu B' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $listItems = menu._list.$element().find('.dx-list-item');
+        const tabindexValues = $listItems.toArray().map(el => {
+            const $btn = $(el).find('.dx-button');
+            return $btn.length ? $btn.attr('tabindex') : undefined;
+        });
+        const countZero = tabindexValues.filter(v => v === '0').length;
+        const countMinusOne = tabindexValues.filter(v => v === '-1').length;
+
+        assert.strictEqual(countZero, 1, 'exactly one item has tabindex=0 (roving tabindex)');
+        assert.strictEqual(countMinusOne, 1, 'other items have tabindex=-1');
+    });
+
+    QUnit.test('ARIA attributes set on non-dropdown texteditor wrapper', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { widget: 'dxTextBox', options: { value: 'hello', inputAttr: { 'aria-label': 'Search' } } },
+            ],
+        });
+
+        const $textEditor = this.$element.find('.dx-texteditor').first();
+
+        assert.strictEqual($textEditor.attr('role'), 'textbox',
+            'texteditor wrapper has role=textbox');
+        assert.strictEqual($textEditor.attr('aria-readonly'), 'true',
+            'texteditor wrapper has aria-readonly=true');
+        assert.strictEqual($textEditor.attr('aria-label'), 'Search',
+            'texteditor wrapper has aria-label from input');
+    });
+
+    QUnit.test('ARIA attributes NOT set on dropdown editor wrapper', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { widget: 'dxSelectBox', options: { items: ['A', 'B'] } },
+            ],
+        });
+
+        const $dropdownEditor = this.$element.find('.dx-dropdowneditor').first();
+
+        assert.strictEqual($dropdownEditor.attr('role'), undefined,
+            'dropdown editor wrapper does not get role=textbox');
+    });
+
+    QUnit.test('focusOut to overlay content does not reset focus state', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxSelectBox', options: { items: ['A', 'B'] } },
+            ],
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        toolbar._focusItemWidget($items.eq(0));
+        this.clock.tick(0);
+
+        const $overlay = $('<div class="dx-overlay-content">').appendTo('#qunit-fixture');
+        this.$element.trigger($.Event('focusout', {
+            target: this.$element.find('.dx-texteditor').get(0),
+            relatedTarget: $overlay.get(0),
+        }));
+        this.clock.tick(0);
+
+        assert.ok($(toolbar.option('focusedElement')).length > 0,
+            'focusedElement is preserved when focus moves to overlay content');
+        $overlay.remove();
+    });
+
+    QUnit.test('Tab key is not intercepted by toolbar', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', options: { text: 'A' } },
+                { widget: 'dxButton', options: { text: 'B' } },
+            ],
+        });
+
+        const $button = this.$element.find('.dx-button').first();
+        const event = new KeyboardEvent('keydown', {
+            key: 'Tab',
+            bubbles: true,
+            cancelable: true,
+        });
+        $button.get(0).dispatchEvent(event);
+
+        assert.strictEqual(event.defaultPrevented, false,
+            'Tab keydown is not prevented by toolbar');
     });
 });
 

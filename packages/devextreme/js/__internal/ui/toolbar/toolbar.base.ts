@@ -603,6 +603,14 @@ class ToolbarBase<
   _postProcessRenderItems(): void {
     this._arrangeItems();
 
+    this._updateFocusableItemsTabIndex();
+  }
+
+  _updateFocusableItemsTabIndex(): void {
+    if (!this.option('focusStateEnabled')) {
+      return;
+    }
+
     const { focusedElement } = this.option();
     this._updateRovingTabIndex($(focusedElement));
   }

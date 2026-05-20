@@ -157,7 +157,9 @@ class Toolbar extends ToolbarBase<Properties> {
     this._layoutStrategy._itemOptionChanged(item, property, value);
     // @ts-expect-error ts-error
     if (property === 'disabled' || property === 'options.disabled') {
-      if (this.option('focusStateEnabled')) {
+      if (this._isMenuItem(item)) {
+        toggleItemFocusableElementTabIndex(this, item);
+      } else if (this.option('focusStateEnabled')) {
         const { focusedElement } = this.option();
         this._updateRovingTabIndex($(focusedElement));
       } else {
@@ -171,11 +173,24 @@ class Toolbar extends ToolbarBase<Properties> {
   }
 
   _updateFocusableItemsTabIndex(): void {
+    const menuItems: Item[] = [];
+    const toolbarItems: Item[] = [];
+
+    this._getToolbarItems().forEach((item) => {
+      if (this._isMenuItem(item)) {
+        menuItems.push(item);
+      } else {
+        toolbarItems.push(item);
+      }
+    });
+
+    menuItems.forEach((item) => toggleItemFocusableElementTabIndex(this, item));
+
     if (this.option('focusStateEnabled')) {
       const { focusedElement } = this.option();
       this._updateRovingTabIndex($(focusedElement));
     } else {
-      this._getToolbarItems().forEach((item) => toggleItemFocusableElementTabIndex(this, item));
+      toolbarItems.forEach((item) => toggleItemFocusableElementTabIndex(this, item));
     }
   }
 

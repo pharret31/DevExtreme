@@ -59,28 +59,6 @@ export function isItemWidgetOpened($item: dxElementWrapper): boolean {
   return false;
 }
 
-export function setItemWidgetFocusState($item: dxElementWrapper, isFocused: boolean): void {
-  const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
-
-  if (!$widgets.length) {
-    return;
-  }
-
-  const $widget = $widgets.first();
-  const itemInstance = getItemInstance($widget);
-
-  if (itemInstance && typeof itemInstance._toggleFocusClass === 'function') {
-    if ($widget.hasClass('dx-menu')) {
-      $item.toggleClass('dx-state-focused', isFocused);
-    } else if ($widget.hasClass('dx-texteditor')) {
-      // TODO: text editors have an editing mode activated by Enter;
-      // do not show dx-state-focused during roving-tabindex navigation
-    } else {
-      itemInstance._toggleFocusClass(isFocused, getItemFocusTarget($item));
-    }
-  }
-}
-
 export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | undefined {
   if ($item.hasClass(DROP_DOWN_MENU_BUTTON_CLASS)) {
     return $item;
@@ -117,6 +95,28 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
   }
 
   return $focusTarget;
+}
+
+export function setItemWidgetFocusState($item: dxElementWrapper, isFocused: boolean): void {
+  const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
+
+  if (!$widgets.length) {
+    return;
+  }
+
+  const $widget = $widgets.first();
+  const itemInstance = getItemInstance($widget);
+
+  if (itemInstance && typeof itemInstance._toggleFocusClass === 'function') {
+    if ($widget.hasClass('dx-menu')) {
+      $item.toggleClass('dx-state-focused', isFocused);
+    } else if ($widget.hasClass('dx-texteditor')) {
+      // TODO: text editors have an editing mode activated by Enter;
+      // do not show dx-state-focused during roving-tabindex navigation
+    } else {
+      itemInstance._toggleFocusClass(isFocused, getItemFocusTarget($item));
+    }
+  }
 }
 
 export function toggleItemFocusableElementTabIndex(

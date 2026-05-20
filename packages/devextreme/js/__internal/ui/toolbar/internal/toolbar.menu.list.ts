@@ -349,6 +349,10 @@ export default class ToolbarMenuList extends ListBase {
   }
 
   _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
+    if (!this.option('focusStateEnabled')) {
+      return;
+    }
+
     const $allVisible = this._getVisibleItems();
     const $available = this._getAvailableItems($allVisible);
     let hasActive = false;
@@ -510,8 +514,10 @@ export default class ToolbarMenuList extends ListBase {
   _postProcessRenderItems(): void {
     super._postProcessRenderItems();
 
-    const { focusedElement } = this.option();
-    this._updateRovingTabIndex($(focusedElement));
+    if (this.option('focusStateEnabled')) {
+      const { focusedElement } = this.option();
+      this._updateRovingTabIndex($(focusedElement));
+    }
   }
 
   _itemClickHandler(

@@ -21,6 +21,7 @@ import Widget from '@ts/core/widget/widget';
 import Button from '@ts/ui/button/wrapper';
 import Popup from '@ts/ui/popup/m_popup';
 import ToolbarMenuList, { TOOLBAR_MENU_ACTION_CLASS } from '@ts/ui/toolbar/internal/toolbar.menu.list';
+import { toggleItemFocusableElementTabIndex } from '@ts/ui/toolbar/toolbar.utils';
 
 export const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
 const DROP_DOWN_MENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
@@ -30,7 +31,7 @@ export const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
 const POPUP_BOUNDARY_VERTICAL_OFFSET = 10;
 const POPUP_VERTICAL_OFFSET = 3;
 
-type OpenFocusTarget = 'first' | 'last';
+type OpenFocusTarget = 'first' | 'last' | null;
 
 export interface DropDownMenuProperties extends WidgetProperties<DropDownMenu> {
   opened?: boolean;
@@ -44,6 +45,7 @@ export interface DropDownMenuProperties extends WidgetProperties<DropDownMenu> {
   onButtonClick?: (e: ClickEvent) => void;
   useInkRipple?: boolean;
   closeOnClick?: boolean;
+  listFocusStateEnabled?: boolean;
 }
 
 export default class DropDownMenu extends Widget<DropDownMenuProperties> {
@@ -61,7 +63,9 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
   _buttonClickAction?: (e: ClickEvent) => void;
 
-  _openFocusTarget: OpenFocusTarget = 'first';
+  _openFocusTarget: OpenFocusTarget = null;
+
+  _wasOpenedWithFocus = false;
 
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _supportedKeys(): Record<string, (e: KeyboardEvent) => boolean | void> {
@@ -274,16 +278,21 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         }
       },
       onShown: () => {
-        if (this._openFocusTarget === 'last') {
-          this._list?.focusLastItem();
-        } else {
-          this._list?.focusFirstItem();
+        if (this.option('listFocusStateEnabled')) {
+          if (this._openFocusTarget === 'last') {
+            this._list?.focusLastItem();
+          } else if (this._openFocusTarget === 'first') {
+            this._list?.focusFirstItem();
+          }
+          this._openFocusTarget = null;
         }
-        this._openFocusTarget = 'first';
       },
       onHidden: () => {
-        const buttonEl = this._button?.$element().get(0) as HTMLElement | undefined;
-        buttonEl?.focus();
+        if (this._wasOpenedWithFocus) {
+          this._wasOpenedWithFocus = false;
+          const buttonEl = this._button?.$element().get(0) as HTMLElement | undefined;
+          buttonEl?.focus();
+        }
       },
       container,
       autoResizeEnabled: false,
@@ -322,6 +331,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
   openWithFocus(focusTarget: OpenFocusTarget = 'first'): void {
     this._openFocusTarget = focusTarget;
+    this._wasOpenedWithFocus = true;
     this.option('opened', true);
   }
 
@@ -357,8 +367,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
     const $content = $(contentElement);
     $content.addClass(DROP_DOWN_MENU_LIST_CLASS);
 
-    const { itemTemplate, onItemRendered } = this.option();
-    const { focusStateEnabled } = this.option();
+    const { itemTemplate, onItemRendered, listFocusStateEnabled } = this.option();
     this._list = this._createComponent($content, ToolbarMenuList, {
       dataSource: this._getListDataSource(),
       pageLoadMode: 'scrollBottom',
@@ -371,7 +380,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         this._itemClickHandler(e);
       },
       tabIndex: -1,
-      focusStateEnabled,
+      focusStateEnabled: listFocusStateEnabled,
       activeStateEnabled: true,
       onItemRendered,
       _itemAttributes: { role: 'menuitem' },
@@ -461,8 +470,10 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         this._invalidate();
         break;
       case 'focusStateEnabled':
-        this._list?.option(name, value);
         super._optionChanged(args);
+        break;
+      case 'listFocusStateEnabled':
+        this._list?.option('focusStateEnabled', value);
         break;
       case 'onItemRendered':
         this._list?.option(name, value);
@@ -491,8 +502,13 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
   _updateFocusableItemsTabIndex(): void {
     if (this._list) {
-      const { focusedElement } = this._list.option();
-      this._list._updateRovingTabIndex($(focusedElement));
+      if (this.option('listFocusStateEnabled')) {
+        const { focusedElement } = this._list.option();
+        this._list._updateRovingTabIndex($(focusedElement));
+      } else {
+        const { items = [] } = this.option();
+        items.forEach((item) => toggleItemFocusableElementTabIndex(this._list, item));
+      }
     }
   }
 }
