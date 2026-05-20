@@ -32,6 +32,18 @@
       height: $fluent-toolbar-height;
     }
   }
+
+  .dx-toolbar-item {
+    [tabindex="0"]:focus-visible {
+      @include dx-toolbar-focus-outline();
+    }
+  }
+
+  .dx-toolbar-menu-container {
+    [tabindex="0"]:focus-visible {
+      @include dx-toolbar-focus-outline();
+    }
+  }
 }
 
 .dx-toolbar-after {
@@ -178,5 +190,13 @@
   .dx-switch {
     display: block;
     line-height: 0;
+  }
+}
+
+.dx-dropdownmenu-list {
+  .dx-list-item {
+    :is(.dx-texteditor, .dx-checkbox, .dx-tabs, .dx-switch)[tabindex="0"]:focus-visible {
+      @include dx-toolbar-focus-outline();
+    }
   }
 }
