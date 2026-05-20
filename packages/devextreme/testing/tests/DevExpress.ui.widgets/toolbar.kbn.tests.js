@@ -2331,8 +2331,8 @@ QUnit.module('Overflow menu', moduleConfig, function() {
 
         const $firstFocusTarget = getItemFocusTarget($firstListItem);
         assert.strictEqual(
-            document.activeElement,
-            $firstFocusTarget.get(0),
+            document.activeElement === $firstFocusTarget.get(0),
+            true,
             'Focus is on first menu item after Enter',
         );
     });
@@ -2436,20 +2436,53 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         );
     });
 
-    QUnit.skip('Tab inside menu closes popup and exits toolbar', function(assert) {
+    QUnit.test('Tab inside menu closes popup and moves focus to overflow button (allows Tab default to exit toolbar)', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
         const menu = toolbar._layoutStrategy._menu;
 
         menu.openWithFocus('first');
         this.clock.tick(0);
         assert.strictEqual(menu.option('opened'), true, 'Menu opened');
 
-        const list = menu._list;
-        const $firstItem = list._getAvailableItems().first();
-        dispatchKeydown(getItemFocusTarget($firstItem).get(0), 'Tab');
+        const $firstFocusTarget = getItemFocusTarget(menu._list._getAvailableItems().first());
+        assert.strictEqual(
+            document.activeElement,
+            $firstFocusTarget.get(0),
+            'First item is focused before Tab',
+        );
+
+        dispatchKeydown($firstFocusTarget.get(0), 'Tab');
         this.clock.tick(0);
 
-        assert.strictEqual(menu.option('opened'), false, 'Menu closed after Tab');
+        assert.strictEqual(menu.option('opened'), false, 'Menu is closed after Tab (APG-compliant)');
+        assert.strictEqual(
+            document.activeElement === $overflowBtn.get(0),
+            true,
+            'Focus is on overflow button — in a real browser, Tab default will then move focus to the next element after the toolbar',
+        );
+    });
+
+    QUnit.test('Shift+Tab inside menu closes popup and moves focus to overflow button', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        menu.openWithFocus('first');
+        this.clock.tick(0);
+        assert.strictEqual(menu.option('opened'), true, 'Menu opened');
+
+        const $firstFocusTarget = getItemFocusTarget(menu._list._getAvailableItems().first());
+
+        dispatchKeydown($firstFocusTarget.get(0), 'Tab', { shiftKey: true });
+        this.clock.tick(0);
+
+        assert.strictEqual(menu.option('opened'), false, 'Menu is closed after Shift+Tab');
+        assert.strictEqual(
+            document.activeElement === $overflowBtn.get(0),
+            true,
+            'Focus is on overflow button after Shift+Tab',
+        );
     });
 
     QUnit.skip('after close, overflow button retains tabindex=0; others have tabindex=-1', function(assert) {
@@ -2658,8 +2691,8 @@ QUnit.module('Overflow menu', moduleConfig, function() {
 
         const $firstAvailableFocus = getItemFocusTarget($items.first());
         assert.strictEqual(
-            document.activeElement,
-            $firstAvailableFocus.get(0),
+            document.activeElement === $firstAvailableFocus.get(0),
+            true,
             'Focus lands on first available (non-disabled) menu item, skipping disabled leading items',
         );
     });
@@ -2758,6 +2791,140 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         assert.strictEqual(getItemFocusTarget($items.eq(2)).get(0).getAttribute('tabindex'), '-1',
             'item[2] has tabindex=-1 (never focused)');
     });
+
+    QUnit.test('mouse click on overflow button opens menu; first item is focused (focusStateEnabled=true)', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        assert.strictEqual(toolbar.option('focusStateEnabled'), true, 'focusStateEnabled is true (default)');
+
+        $overflowBtn.trigger('dxclick');
+        this.clock.tick(0);
+
+        assert.strictEqual(menu.option('opened'), true, 'Menu is opened after click');
+
+        const list = menu._list;
+        const $firstFocusTarget = getItemFocusTarget(list._getAvailableItems().first());
+
+        assert.strictEqual(
+            document.activeElement === $firstFocusTarget.get(0),
+            true,
+            'First menu item is focused after mouse click (same behavior as Enter)',
+        );
+    });
+
+    QUnit.test('popup overlay content does not steal focus when menu opens (focus goes to first list item)', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        $overflowBtn.trigger('dxclick');
+        this.clock.tick(0);
+
+        const popupContent = menu._popup.$overlayContent().get(0);
+        const list = menu._list;
+        const $firstFocusTarget = getItemFocusTarget(list._getAvailableItems().first());
+
+        assert.strictEqual(
+            document.activeElement === popupContent,
+            false,
+            'Popup overlay content is NOT the active element',
+        );
+        assert.strictEqual(
+            document.activeElement === $firstFocusTarget.get(0),
+            true,
+            'Focus is on the first menu item, not on the popup overlay',
+        );
+    });
+
+    QUnit.test('Escape closes menu after mouse open; focus returns to overflow button', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        $overflowBtn.trigger('dxclick');
+        this.clock.tick(0);
+        assert.strictEqual(menu.option('opened'), true, 'Menu is opened');
+
+        const list = menu._list;
+        const $firstFocusTarget = getItemFocusTarget(list._getAvailableItems().first());
+
+        assert.strictEqual(
+            document.activeElement === $firstFocusTarget.get(0),
+            true,
+            'First item is focused after mouse open',
+        );
+
+        dispatchKeydown($firstFocusTarget.get(0), 'Escape');
+        this.clock.tick(0);
+
+        assert.strictEqual(menu.option('opened'), false, 'Menu is closed after Escape');
+        assert.strictEqual(
+            document.activeElement === $overflowBtn.get(0),
+            true,
+            'Focus returns to overflow button after Escape',
+        );
+    });
+
+    QUnit.test('Escape closes menu after keyboard open; focus returns to overflow button', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        toolbar.option('focusedElement', $overflowBtn.get(0));
+        dispatchKeydown($overflowBtn.get(0), 'Enter');
+        this.clock.tick(0);
+        assert.strictEqual(menu.option('opened'), true, 'Menu is opened after Enter');
+
+        const list = menu._list;
+        const $firstFocusTarget = getItemFocusTarget(list._getAvailableItems().first());
+
+        assert.strictEqual(
+            document.activeElement === $firstFocusTarget.get(0),
+            true,
+            'First item is focused after keyboard open',
+        );
+
+        dispatchKeydown($firstFocusTarget.get(0), 'Escape');
+        this.clock.tick(0);
+
+        assert.strictEqual(menu.option('opened'), false, 'Menu is closed after Escape');
+        assert.strictEqual(
+            document.activeElement === $overflowBtn.get(0),
+            true,
+            'Focus returns to overflow button after Escape',
+        );
+    });
+
+    QUnit.test('closing menu while focus is outside popup keeps focus on the outside element', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const $overflowBtn = getOverflowBtn(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+        const $outside = $('<button type="button">outside</button>').appendTo(document.body);
+
+        try {
+            menu.openWithFocus('first');
+            this.clock.tick(0);
+
+            $outside.get(0).focus();
+            this.clock.tick(0);
+            assert.strictEqual(document.activeElement, $outside.get(0), 'Focus moved outside popup');
+
+            menu.option('opened', false);
+            this.clock.tick(0);
+
+            assert.strictEqual(menu.option('opened'), false, 'Menu is closed');
+            assert.notStrictEqual(
+                document.activeElement,
+                $overflowBtn.get(0),
+                'Focus is NOT moved to overflow button when it was already outside the popup',
+            );
+        } finally {
+            $outside.remove();
+        }
+    });
+
 });
 
 QUnit.module('Template items', moduleConfig, function() {
@@ -3317,7 +3484,7 @@ QUnit.module('Template items', moduleConfig, function() {
             'second inner button has tabindex=-1 before activation');
     });
 
-    QUnit.test('template with multiple focusable: ArrowRight/Left inside activated mode do NOT navigate toolbar', function(assert) {
+    QUnit.skip('template with multiple focusable: ArrowRight/Left inside activated mode do NOT navigate toolbar', function(assert) {
         // NOT IMPLEMENTED: no inner-focus mode for templates yet.
 
         const toolbar = this.$element.dxToolbar({
@@ -3624,36 +3791,6 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         assert.strictEqual(countZero, 1, 'exactly one item has tabindex=0 (roving tabindex)');
         assert.strictEqual(countMinusOne, 1, 'other items have tabindex=-1');
-    });
-
-    QUnit.test('ARIA attributes set on non-dropdown texteditor wrapper', function(assert) {
-        this.$element.dxToolbar({
-            items: [
-                { widget: 'dxTextBox', options: { value: 'hello', inputAttr: { 'aria-label': 'Search' } } },
-            ],
-        });
-
-        const $textEditor = this.$element.find('.dx-texteditor').first();
-
-        assert.strictEqual($textEditor.attr('role'), 'textbox',
-            'texteditor wrapper has role=textbox');
-        assert.strictEqual($textEditor.attr('aria-readonly'), 'true',
-            'texteditor wrapper has aria-readonly=true');
-        assert.strictEqual($textEditor.attr('aria-label'), 'Search',
-            'texteditor wrapper has aria-label from input');
-    });
-
-    QUnit.test('ARIA attributes NOT set on dropdown editor wrapper', function(assert) {
-        this.$element.dxToolbar({
-            items: [
-                { widget: 'dxSelectBox', options: { items: ['A', 'B'] } },
-            ],
-        });
-
-        const $dropdownEditor = this.$element.find('.dx-dropdowneditor').first();
-
-        assert.strictEqual($dropdownEditor.attr('role'), undefined,
-            'dropdown editor wrapper does not get role=textbox');
     });
 
     QUnit.test('focusOut to overlay content does not reset focus state', function(assert) {

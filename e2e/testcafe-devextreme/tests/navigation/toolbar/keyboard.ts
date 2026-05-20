@@ -1,18 +1,11 @@
-import { Selector, ClientFunction } from 'testcafe';
+import { Selector } from 'testcafe';
+import Toolbar from 'devextreme-testcafe-models/toolbar/toolbar';
 import url from '../../../helpers/getPageUrl';
 import { createWidget } from '../../../helpers/createWidget';
 import { appendElementTo } from '../../../helpers/domUtils';
 
 fixture.disablePageReloads`Toolbar_keyboard_navigation`
   .page(url(__dirname, '../../container.html'));
-
-const isFocusInsideItem = ClientFunction((itemIndex: number) => {
-  const items = document.querySelectorAll(
-    '#toolbar .dx-toolbar-item',
-  );
-  const item = items[itemIndex];
-  return item ? item.contains(document.activeElement) : false;
-});
 
 const toolbarWidgets = [
   {
@@ -76,10 +69,55 @@ const toolbarWidgets = [
   },
 ] as const;
 
+const setupOverflowMenuFixture = async (): Promise<void> => {
+  await appendElementTo('#container', 'div', 'toolbar');
+  await appendElementTo('#container', 'div', 'externalAfter');
+
+  await createWidget('dxToolbar', {
+    items: [
+      { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+      { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+      { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu B' } },
+    ],
+  }, '#toolbar');
+
+  await createWidget('dxButton', { text: 'External After' }, '#externalAfter');
+};
+
+test('Tab inside overflow menu closes popup and moves focus past the toolbar', async (t) => {
+  const externalAfter = Selector('#externalAfter');
+  const toolbar = new Toolbar('#toolbar');
+  const menu = toolbar.getOverflowMenu();
+
+  await t.click(menu.element);
+  await t.expect(menu.option('opened')).eql(true);
+
+  await t.pressKey('tab');
+
+  await t.expect(menu.option('opened')).eql(false);
+  await t.expect(externalAfter.focused).ok();
+}).before(setupOverflowMenuFixture);
+
+test('Outside click closes overflow menu without stealing focus to overflow button', async (t) => {
+  const externalAfter = Selector('#externalAfter');
+  const toolbar = new Toolbar('#toolbar');
+  const menu = toolbar.getOverflowMenu();
+
+  await t.click(menu.element);
+  await t.expect(menu.option('opened')).eql(true);
+
+  await t.click(externalAfter);
+
+  await t.expect(menu.option('opened')).eql(false);
+  await t.expect(externalAfter.focused).ok();
+  await t.expect(menu.isFocused).notOk();
+}).before(setupOverflowMenuFixture);
+
 toolbarWidgets.forEach(({ widget, options }) => {
   test(`${widget}: Tab leaves and Shift+Tab returns focus`, async (t) => {
     const externalBefore = Selector('#externalBefore');
     const externalAfter = Selector('#externalAfter');
+    const toolbar = new Toolbar('#toolbar');
 
     await t.click(externalBefore);
     await t
@@ -88,12 +126,12 @@ toolbarWidgets.forEach(({ widget, options }) => {
 
     await t.pressKey('tab');
     await t
-      .expect(isFocusInsideItem(0))
+      .expect(toolbar.getItem(0).find(':focus').exists)
       .ok('first toolbar item should be focused after Tab');
 
     await t.pressKey('right');
     await t
-      .expect(isFocusInsideItem(1))
+      .expect(toolbar.getItem(1).find(':focus').exists)
       .ok(`${widget} should be focused after arrow right`);
 
     await t.pressKey('tab');
@@ -103,7 +141,7 @@ toolbarWidgets.forEach(({ widget, options }) => {
 
     await t.pressKey('shift+tab');
     await t
-      .expect(isFocusInsideItem(1))
+      .expect(toolbar.getItem(1).find(':focus').exists)
       .ok(`${widget} should be focused after Shift+Tab`);
   }).before(async () => {
     await appendElementTo('#container', 'div', 'externalBefore');

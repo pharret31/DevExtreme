@@ -272,6 +272,7 @@ export class SingleLineStrategy {
         break;
       case 'focusStateEnabled':
         this._menu?.option('listFocusStateEnabled', value);
+        break;
       case 'overflowMenuVisible':
         this._menu?.option('opened', value);
         break;

@@ -577,7 +577,7 @@ QUnit.module('widget sizing render', moduleConfig, () => {
         beforeEach: function() {
             this.instance.option({
                 items: [1, 2, 3],
-                focusStateEnabled: true,
+                listFocusStateEnabled: true,
                 opened: true
             });
 
@@ -587,10 +587,10 @@ QUnit.module('widget sizing render', moduleConfig, () => {
         QUnit.test('list focusStateEnabled option', function(assert) {
             assert.expect(3);
 
-            this.instance.option({ focusStateEnabled: false });
+            this.instance.option({ listFocusStateEnabled: false });
             assert.ok(!this.overflowMenu.list().option('focusStateEnabled'));
 
-            this.instance.option('focusStateEnabled', true);
+            this.instance.option('listFocusStateEnabled', true);
             assert.ok(this.overflowMenu.list().option('focusStateEnabled'));
 
             const $listItemContainer = this.overflowMenu.$list().find(`.${SCROLLVIEW_CONTENT_CLASS}`);
@@ -618,15 +618,20 @@ QUnit.module('widget sizing render', moduleConfig, () => {
             this.keyboard.keyDown('enter');
             assert.ok(this.overflowMenu.popup().option('visible'));
 
+            const list = this.overflowMenu.list();
             const $items = this.overflowMenu.$items();
 
-            assert.ok($items.eq(0).attr('id'), 'first item is active');
+            $items.eq(0).get(0).dispatchEvent(new Event('focusin', { bubbles: true }));
+            const $focused0 = $(list.option('focusedElement'));
+            assert.ok($focused0.get(0) === $items.eq(0).get(0), 'first item is active');
 
             $items.eq(0).get(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
-            assert.ok($items.eq(1).attr('id'), 'second item is active');
+            const $focused1 = $(list.option('focusedElement'));
+            assert.ok($focused1.get(0) === $items.eq(1).get(0), 'second item is active');
 
             $items.eq(1).get(0).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
-            assert.ok($items.eq(0).attr('id'), 'third item is active');
+            const $focused2 = $(list.option('focusedElement'));
+            assert.ok($focused2.get(0) === $items.eq(0).get(0), 'first item is active again');
         });
 
         QUnit.test('hide popup on press tab', function(assert) {
@@ -762,9 +767,11 @@ QUnit.module('widget sizing render', moduleConfig, () => {
 
             this.keyboard.keyDown('enter');
             const $firstItem = this.overflowMenu.$items().eq(0);
+            $firstItem.get(0).dispatchEvent(new Event('focusin', { bubbles: true }));
             $firstItem.trigger($.Event('keydown', { key: 'Enter' }));
 
             this.keyboard.keyDown('enter');
+            this.overflowMenu.$items().eq(0).get(0).dispatchEvent(new Event('focusin', { bubbles: true }));
             this.overflowMenu.$items().eq(0).trigger($.Event('keydown', { key: ' ' }));
 
             assert.equal(itemClicked, 2, 'item was clicked twice');
@@ -773,7 +780,7 @@ QUnit.module('widget sizing render', moduleConfig, () => {
         QUnit.test('No exceptions on tab key pressing when popup is not opened', function(assert) {
             assert.expect(0);
 
-            this.instance.option({ focusStateEnabled: true });
+            this.instance.option({ listFocusStateEnabled: true });
 
             const keyboard = keyboardMock(this.$element);
 

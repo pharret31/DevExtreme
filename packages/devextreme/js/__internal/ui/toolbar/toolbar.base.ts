@@ -293,6 +293,18 @@ class ToolbarBase<
       const location = keyToLocation[e.key];
 
       if (!location) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          const { focusedElement } = this.option();
+          const $focused = $(focusedElement);
+
+          if ($focused.length && this._isOverflowItem($focused)) {
+            e.preventDefault();
+            e.stopPropagation();
+            this._openOverflowMenu('first');
+          }
+          return;
+        }
+
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           const { focusedElement } = this.option();
           const $focused = $(focusedElement);
@@ -439,19 +451,6 @@ class ToolbarBase<
 
       if ($input?.length) {
         $input.attr('tabIndex', -1);
-
-        const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
-        if (!hasDropDown && !$focusTarget.attr('role')) {
-          const label = $input.attr('aria-label')
-            ?? $input.attr('placeholder')
-            ?? '';
-          // @ts-expect-error ts-error
-          $focusTarget.attr({
-            role: 'textbox',
-            'aria-readonly': 'true',
-            'aria-label': label,
-          });
-        }
       }
 
       const $menu = $item.find('.dx-menu');
@@ -482,10 +481,14 @@ class ToolbarBase<
 
   _focusInHandler(e: DxEvent): void {
     if (this._isFocusTarget(e.target)) {
-      super._focusInHandler(e);
-
       const { focusedElement } = this.option();
       const $focused = $(focusedElement);
+
+      if ($focused.length && isItemWidgetOpened($focused)) {
+        return;
+      }
+
+      super._focusInHandler(e);
 
       if ($focused.length) {
         this._focusItemWidget($focused);

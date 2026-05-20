@@ -29,6 +29,8 @@ export default class ToolbarMenuList extends ListBase {
 
   _onEscapePress?: () => void;
 
+  _onTabPress?: () => void;
+
   _keyboardListenerId?: string;
 
   protected _activeStateUnit(): string {
@@ -260,6 +262,12 @@ export default class ToolbarMenuList extends ListBase {
         return;
       }
 
+      if (e.key === 'Tab') {
+        this._onTabPress?.();
+
+        return;
+      }
+
       const keyToLocation: Record<string, string> = {
         ArrowDown: 'down',
         ArrowUp: 'up',
@@ -390,19 +398,6 @@ export default class ToolbarMenuList extends ListBase {
 
       if ($input?.length) {
         $input.attr('tabIndex', -1);
-
-        const hasDropDown = $focusTarget.hasClass('dx-dropdowneditor');
-        if (!hasDropDown && !$focusTarget.attr('role')) {
-          const label = $input.attr('aria-label')
-            ?? $input.attr('placeholder')
-            ?? '';
-          // @ts-expect-error ts-error
-          $focusTarget.attr({
-            role: 'textbox',
-            'aria-readonly': 'true',
-            'aria-label': label,
-          });
-        }
       }
 
       const $menu = $item.find('.dx-menu');
