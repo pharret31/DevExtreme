@@ -215,6 +215,7 @@ class Toolbar extends ToolbarBase<Properties> {
       case 'multiline':
         this._invalidate();
         break;
+      case 'focusStateEnabled':
       case 'disabled':
         super._optionChanged(args);
 

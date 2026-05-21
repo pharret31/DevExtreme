@@ -3816,6 +3816,57 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'ArrowRight does not move focus after focusStateEnabled changed to false');
     });
 
+    QUnit.test('focusStateEnabled:true→false — items reset to natural tabindex (all 0)', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+        const $firstFocusTarget = getItemFocusTarget($items.first());
+        this.$element.trigger($.Event('focusin', { target: $firstFocusTarget.get(0) }));
+        this.clock.tick(0);
+
+        const tabIndicesBefore = $items.toArray().map(item => getItemFocusTarget($(item)).attr('tabindex'));
+        assert.strictEqual(tabIndicesBefore[0], '0', 'First item has tabindex=0 (roving)');
+        assert.strictEqual(tabIndicesBefore[1], '-1', 'Second item has tabindex=-1 (roving)');
+
+        toolbar.option('focusStateEnabled', false);
+
+        const tabIndicesAfter = $items.toArray().map(item => getItemFocusTarget($(item)).attr('tabindex'));
+        assert.strictEqual(tabIndicesAfter[0], '0', 'First item has natural tabindex=0 after focusStateEnabled:false');
+        assert.strictEqual(tabIndicesAfter[1], '0', 'Second item has natural tabindex=0 after focusStateEnabled:false');
+        assert.strictEqual(tabIndicesAfter[2], '0', 'Third item has natural tabindex=0 after focusStateEnabled:false');
+    });
+
+    QUnit.test('focusStateEnabled:false→true — roving tabindex is applied (only first item at 0)', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $items = toolbar._getAvailableItems();
+
+        const tabIndicesBefore = $items.toArray().map(item => getItemFocusTarget($(item)).attr('tabindex'));
+        assert.strictEqual(tabIndicesBefore[0], '0', 'All items start at natural tabindex=0');
+        assert.strictEqual(tabIndicesBefore[1], '0', 'All items start at natural tabindex=0');
+
+        toolbar.option('focusStateEnabled', true);
+
+        const tabIndicesAfter = $items.toArray().map(item => getItemFocusTarget($(item)).attr('tabindex'));
+        assert.strictEqual(tabIndicesAfter[0], '0', 'First item gets tabindex=0 from roving tabindex');
+        assert.strictEqual(tabIndicesAfter[1], '-1', 'Second item gets tabindex=-1 from roving tabindex');
+        assert.strictEqual(tabIndicesAfter[2], '-1', 'Third item gets tabindex=-1 from roving tabindex');
+    });
+
     QUnit.test('focusStateEnabled:false — overflow menu items use toggleItemFocusableElementTabIndex (not roving)', function(assert) {
         const toolbar = this.$element.dxToolbar({
             focusStateEnabled: false,
