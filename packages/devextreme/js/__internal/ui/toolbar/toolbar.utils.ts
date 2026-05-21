@@ -21,6 +21,14 @@ const getItemInstance = ($element: dxElementWrapper): Widget => {
   return (widgetName && itemData[widgetName]) as Widget;
 };
 
+const getWidgetName = ($element: dxElementWrapper): string => {
+  // @ts-expect-error ts-error
+  const itemData = $element?.data();
+  // @ts-expect-error ts-error
+  const dxComponents = itemData?.dxComponents;
+  return (dxComponents?.[0] ?? '') as string;
+};
+
 export function closeItemWidget($item: dxElementWrapper): boolean {
   const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
 
@@ -80,16 +88,11 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
 
   let $focusTarget = itemInstance._focusTarget?.();
 
-  // @ts-expect-error ts-error
-  const itemData = $widget.data();
-  // @ts-expect-error ts-error
-  const widgetName = (itemData?.dxComponents?.[0] ?? '') as string;
+  const widgetName = getWidgetName($widget);
   if (widgetName.toLowerCase().includes('dropdownbutton')) {
     $focusTarget = $focusTarget?.find(`.${BUTTON_GROUP_CLASS}`);
-  } else if ($widget.hasClass('dx-texteditor')) {
+  } else if ($widget.hasClass('dx-texteditor') || $widget.hasClass('dx-menu')) {
     $focusTarget = $(itemInstance.element());
-  } else if ($widget.hasClass('dx-menu')) {
-    $focusTarget = $item;
   } else {
     $focusTarget = $focusTarget ?? $(itemInstance.element());
   }
@@ -141,8 +144,6 @@ export function toggleItemFocusableElementTabIndex(
 
       if (widget === 'dxDropDownButton') {
         $focusTarget = $focusTarget?.find(`.${BUTTON_GROUP_CLASS}`);
-      } else if (widget === 'dxMenu') {
-        $focusTarget = $item;
       } else {
         $focusTarget = $focusTarget ?? $(itemInstance.element());
       }

@@ -25,7 +25,7 @@ import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/c
 
 import { TOOLBAR_CLASS } from './constants';
 import {
-  closeItemWidget, getItemFocusTarget, isItemWidgetOpened, setItemWidgetFocusState,
+  closeItemWidget, getItemFocusTarget, isItemWidgetOpened,
 } from './toolbar.utils';
 
 export const TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
@@ -79,6 +79,8 @@ class ToolbarBase<
   _keyboardListenerId?: string;
 
   _captureKeydownHandler?: EventListener;
+
+  _menuActivating = false;
 
   _getSynchronizableOptionsForCreateComponent(): (keyof TProperties)[] {
     return super._getSynchronizableOptionsForCreateComponent().filter((item) => item !== 'disabled');
@@ -205,12 +207,7 @@ class ToolbarBase<
         const $menu = $item.find('.dx-menu').first();
         if ($menu.length) {
           e.preventDefault();
-          setItemWidgetFocusState($item, false);
-          const menuInstance = $menu.data('dxMenu');
-          if (menuInstance) {
-            // @ts-expect-error
-            menuInstance.focus();
-          }
+          this._activateMenu($menu);
           return;
         }
       }
@@ -354,8 +351,21 @@ class ToolbarBase<
   }
 
   _isMenuTarget(target: HTMLElement): boolean {
-    return $(target).closest('.dx-menu').length > 0
-      && !$(target).hasClass('dx-toolbar-item');
+    if ($(target).closest('.dx-menu-item').length > 0) {
+      return true;
+    }
+
+    // After Enter, DOM focus is on the menu's internal container (not on a
+    // .dx-menu-item itself). Detect "menu is in active mode" via its
+    // focusedElement option set by CollectionWidget activation.
+    const $menu = $(target).closest('.dx-menu');
+    if (!$menu.length) {
+      return false;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const menuInstance = $menu.data('dxMenu') as any;
+    return !!menuInstance?.option?.('focusedElement');
   }
 
   _isOverflowItem($item: dxElementWrapper): boolean {
@@ -455,7 +465,6 @@ class ToolbarBase<
 
       const $menu = $item.find('.dx-menu');
       if ($menu.length) {
-        $menu.attr('tabIndex', -1);
         $menu.find('[tabindex]').attr('tabIndex', -1);
       }
 
@@ -505,6 +514,20 @@ class ToolbarBase<
 
       if ($item.length && getItemFocusTarget($item)?.length) {
         this.option('focusedElement', getPublicElement($item));
+
+        // If focus landed on .dx-menu root externally (Tab from outside), the
+        // menu's own _focusInHandler already auto-activated. Detach to bring
+        // it back to silent nav level — symmetric with texteditor. Skip when
+        // we are intentionally activating (Enter) — focusin from _activateMenu
+        // bubbles here and must not undo activation.
+        if ($target.hasClass('dx-menu') && !this._menuActivating) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const menuInstance = $target.data('dxMenu') as any;
+          menuInstance?._detachFocusEvents?.();
+          menuInstance?._detachKeyboardEvents?.();
+          menuInstance?.option?.('focusedElement', null);
+          $target.removeClass('dx-state-focused');
+        }
       }
     }
   }
@@ -515,8 +538,37 @@ class ToolbarBase<
       return;
     }
 
+    if ($focusTarget.hasClass('dx-menu')) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const menuInstance = $focusTarget.data('dxMenu') as any;
+      // Detach menu's focus + keyboard handlers so focus on .dx-menu root is
+      // "silent" — symmetric with texteditor whose handlers are on inner input.
+      // Direct detach avoids the option-change side effect of stripping tabIndex.
+      menuInstance?._detachFocusEvents?.();
+      menuInstance?._detachKeyboardEvents?.();
+      menuInstance?.option?.('focusedElement', null);
+      $focusTarget.removeClass('dx-state-focused');
+    }
+
     ($focusTarget.get(0) as HTMLElement).focus();
-    setItemWidgetFocusState($item, true);
+  }
+
+  _activateMenu($menu: dxElementWrapper): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const menuInstance = $menu.data('dxMenu') as any;
+    if (!menuInstance) {
+      return;
+    }
+
+    this._menuActivating = true;
+    try {
+      // Re-attach handlers detached at nav level, then focus to activate.
+      menuInstance._attachFocusEvents();
+      menuInstance._attachKeyboardEvents();
+      menuInstance.focus();
+    } finally {
+      this._menuActivating = false;
+    }
   }
 
   _focusOutHandler(e: DxEvent): void {
@@ -535,12 +587,6 @@ class ToolbarBase<
       return;
     }
 
-    const { focusedElement } = this.option();
-    const $focused = $(focusedElement);
-    if ($focused.length) {
-      setItemWidgetFocusState($focused, false);
-    }
-
     super._focusOutHandler(e);
   }
 
@@ -550,7 +596,6 @@ class ToolbarBase<
     const $prev = $(prevFocusedElement);
     if ($prev.length) {
       closeItemWidget($prev);
-      setItemWidgetFocusState($prev, false);
     }
 
     const result = super._moveFocus(location, e);

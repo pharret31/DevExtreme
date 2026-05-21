@@ -60,9 +60,3 @@
     padding: 0;
   }
 }
-
-@mixin dx-toolbar-focus-outline() {
-  outline: 2px solid $base-accent;
-  outline-offset: 1px;
-  border-radius: 4px;
-}

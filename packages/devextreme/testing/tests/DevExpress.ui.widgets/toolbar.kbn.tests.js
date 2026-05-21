@@ -235,6 +235,45 @@ QUnit.module('Enter/Exit: text input editors', {
             assert.strictEqual($tabZero.length, 1,
                 `Exactly one non-input tabindex=0 after enter/exit/navigate cycle with ${widget}`);
         });
+
+        QUnit.test(`${widget}: editor does not get dx-state-focused on toolbar navigation (before Enter)`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+            toolbar._focusItemWidget($items.eq(1));
+            this.clock.tick(0);
+
+            const $editor = $items.eq(1).find('.dx-texteditor').first();
+            assert.strictEqual($editor.hasClass('dx-state-focused'), false,
+                `${widget} root element does not have dx-state-focused during toolbar navigation`);
+        });
+
+        QUnit.test(`${widget}: editor gets dx-state-focused after Enter`, function(assert) {
+            const toolbar = this.$element.dxToolbar({
+                items: [
+                    { widget: 'dxButton', options: { text: 'Prev' } },
+                    { widget, options },
+                    { widget: 'dxButton', options: { text: 'Next' } },
+                ],
+            }).dxToolbar('instance');
+
+            const $items = toolbar._getAvailableItems();
+            toolbar.option('focusedElement', $items.eq(1).get(0));
+
+            triggerKey(this.$element.get(0), 'Enter');
+            this.clock.tick(50);
+
+            const $editor = $items.eq(1).find('.dx-texteditor').first();
+            assert.strictEqual($editor.hasClass('dx-state-focused'), true,
+                `${widget} root element has dx-state-focused after Enter`);
+        });
     });
 });
 
@@ -661,8 +700,8 @@ QUnit.module('Enter/Exit: collection widgets', {
             triggerKey(document.activeElement, 'Escape');
             this.clock.tick(50);
 
-            assert.strictEqual(document.activeElement, $items.eq(1).get(0),
-                `Esc returns focus to toolbar item containing ${widget}`);
+            assert.ok($items.eq(1).get(0).contains(document.activeElement),
+                `Esc returns focus inside the ${widget} toolbar item (on widget root, not on inner element)`);
         });
 
         QUnit.test(`${widget}: arrows navigate toolbar after Esc`, function(assert) {
@@ -837,7 +876,8 @@ function getItemFocusTarget($item) {
     const $buttonGroup = $item.find('.dx-buttongroup').first();
     if($buttonGroup.length) return $buttonGroup;
 
-    if($item.find('.dx-menu').length) return $item;
+    const $menu = $item.find('.dx-menu').first();
+    if($menu.length) return $menu;
 
     const $native = $item.find('button:not([disabled]), input:not([disabled]), a[href]').first();
     if($native.length) return $native;
@@ -2925,6 +2965,55 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         }
     });
 
+    QUnit.test('ArrowDown on dxMenu inside overflow list navigates list, does not activate menu', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                {
+                    locateInMenu: 'always',
+                    widget: 'dxMenu',
+                    options: {
+                        items: [
+                            { text: 'File', items: [{ text: 'New' }, { text: 'Open' }] },
+                        ],
+                    },
+                },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'After Menu' } },
+            ],
+        }).dxToolbar('instance');
+        const $overflowBtn = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const menu = toolbar._layoutStrategy._menu;
+
+        $overflowBtn.trigger('dxclick');
+        this.clock.tick(0);
+        assert.strictEqual(menu.option('opened'), true, 'overflow popup opened');
+
+        const $listItems = menu._list._getAvailableItems();
+        // Navigate to the list item that contains dxMenu (assume it's at index 0 after Visible button is excluded from menu)
+        const $menuListItem = $listItems.toArray().map((el) => $(el)).find(($i) => $i.find('.dx-menu').length > 0);
+        assert.ok($menuListItem, 'found a list item containing dxMenu');
+
+        menu._list.option('focusedElement', $menuListItem.get(0));
+        menu._list._focusItemWidget($menuListItem);
+        this.clock.tick(0);
+
+        const $menuRoot = $menuListItem.find('.dx-menu').first();
+        const menuInstance = $menuRoot.dxMenu('instance');
+
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'dxMenu is at list nav level — internal focusedElement is null');
+
+        dispatchKeydown($menuRoot.get(0), 'ArrowDown');
+        this.clock.tick(0);
+
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'dxMenu did NOT activate on ArrowDown — its keyboard handler did not process the key');
+
+        const newFocused = $(menu._list.option('focusedElement')).get(0);
+        assert.notStrictEqual(newFocused, $menuListItem.get(0),
+            'list moved to the next item on ArrowDown (instead of menu reacting)');
+    });
+
 });
 
 QUnit.module('Template items', moduleConfig, function() {
@@ -4020,7 +4109,7 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
             'second ArrowRight skips past dxMenu to Next button');
     });
 
-    QUnit.test('dxMenu item gets dx-state-focused when toolbar focuses it', function(assert) {
+    QUnit.test('dxMenu root does NOT get dx-state-focused on toolbar navigation', function(assert) {
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
@@ -4028,8 +4117,8 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         toolbar._focusItemWidget($items.eq(1));
         this.clock.tick(0);
 
-        assert.ok($items.eq(1).hasClass('dx-state-focused'),
-            'toolbar item wrapper has dx-state-focused');
+        assert.strictEqual($items.eq(1).find('.dx-menu').first().hasClass('dx-state-focused'), false,
+            '.dx-menu root does NOT have dx-state-focused during toolbar navigation (before Enter)');
     });
 
     QUnit.test('Enter activates menu — focus moves inside .dx-menu', function(assert) {
@@ -4044,24 +4133,6 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
             $items.eq(1).get(0).contains(document.activeElement),
             'focus is inside the dxMenu toolbar item',
         );
-    });
-
-    QUnit.test('Enter removes dx-state-focused from toolbar item wrapper', function(assert) {
-        const toolbar = createMenuToolbar(this.$element);
-        const $items = toolbar._getAvailableItems();
-
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        toolbar._focusItemWidget($items.eq(1));
-        this.clock.tick(0);
-
-        assert.ok($items.eq(1).hasClass('dx-state-focused'),
-            'item has dx-state-focused before Enter');
-
-        dispatchKeydown(this.$element.get(0), 'Enter');
-        this.clock.tick(50);
-
-        assert.notOk($items.eq(1).hasClass('dx-state-focused'),
-            'item lost dx-state-focused after Enter');
     });
 
     QUnit.test('first menu-item gets dx-state-focused after Enter', function(assert) {
@@ -4121,7 +4192,7 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
             'menu focusedElement moved back to first root item');
     });
 
-    QUnit.test('Escape exits menu — focus returns to toolbar item wrapper', function(assert) {
+    QUnit.test('Escape exits menu — focus returns to .dx-menu root', function(assert) {
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
@@ -4132,29 +4203,11 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         dispatchKeydown(document.activeElement, 'Escape');
         this.clock.tick(50);
 
-        assert.strictEqual(document.activeElement, $items.eq(1).get(0),
-            'focus returned to toolbar item wrapper after Escape');
-    });
-
-    QUnit.test('Escape restores dx-state-focused on toolbar item wrapper', function(assert) {
-        const toolbar = createMenuToolbar(this.$element);
-        const $items = toolbar._getAvailableItems();
-
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        toolbar._focusItemWidget($items.eq(1));
-        this.clock.tick(0);
-
-        dispatchKeydown(this.$element.get(0), 'Enter');
-        this.clock.tick(50);
-
-        assert.notOk($items.eq(1).hasClass('dx-state-focused'),
-            'item lost dx-state-focused after Enter');
-
-        dispatchKeydown(document.activeElement, 'Escape');
-        this.clock.tick(50);
-
-        assert.ok($items.eq(1).hasClass('dx-state-focused'),
-            'item regained dx-state-focused after Escape');
+        const $menuRoot = $items.eq(1).find('.dx-menu').first();
+        assert.strictEqual(document.activeElement, $menuRoot.get(0),
+            'focus returned to .dx-menu root after Escape');
+        assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
+            '.dx-menu root does NOT have dx-state-focused after Escape (back to toolbar nav level)');
     });
 
     QUnit.test('menu-item dx-state-focused removed after Escape', function(assert) {
@@ -4227,8 +4280,100 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         assert.strictEqual($tabZero.length, 1,
             'exactly one tabindex=0 after enter/exit/navigate cycle');
     });
-});
 
+    QUnit.test('tabindex=0 is on .dx-menu root, not on .dx-toolbar-item wrapper', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._updateRovingTabIndex($items.eq(1));
+        this.clock.tick(0);
+
+        assert.strictEqual($items.eq(1).find('.dx-menu').first().attr('tabindex'), '0',
+            '.dx-menu root is the tab stop (tabindex=0)');
+        assert.notStrictEqual($items.eq(1).attr('tabindex'), '0',
+            '.dx-toolbar-item wrapper is NOT the tab stop');
+    });
+
+    QUnit.test('dxMenu does not get dx-state-focused on toolbar navigation (before Enter)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._focusItemWidget($items.eq(1));
+        this.clock.tick(0);
+
+        const $menuRoot = $items.eq(1).find('.dx-menu').first();
+        assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
+            '.dx-menu root does not have dx-state-focused during toolbar navigation');
+
+        const $menuItems = $menuRoot.find('.dx-menu-item');
+        const anyMenuItemFocused = $menuItems.toArray().some(
+            (el) => $(el).hasClass('dx-state-focused')
+        );
+        assert.strictEqual(anyMenuItemFocused, false,
+            'no .dx-menu-item is activated/highlighted during toolbar navigation (silent like texteditor)');
+
+        const menuInstance = $menuRoot.dxMenu('instance');
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'menu internal focusedElement is null (not auto-activated)');
+    });
+
+    QUnit.test('dxMenu\'s own keyboard handler does not process keys at toolbar nav level (symmetric with texteditor)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._focusItemWidget($items.eq(1));
+        this.clock.tick(0);
+
+        const $menuRoot = $items.eq(1).find('.dx-menu').first();
+        const menuInstance = $menuRoot.dxMenu('instance');
+
+        let menuHandlerCalled = false;
+        const originalHandler = menuInstance._keyboardHandler.bind(menuInstance);
+        menuInstance._keyboardHandler = function(opts) {
+            menuHandlerCalled = true;
+            return originalHandler(opts);
+        };
+
+        try {
+            ['ArrowDown', 'ArrowUp', 'Enter', ' ', 'a', 'F1', 'PageDown'].forEach(function(key) {
+                // Ensure menu is at toolbar nav level (inactive) before each key:
+                // _activateMenu from a previous iteration may have set focusedElement.
+                menuInstance.option('focusedElement', null);
+
+                menuHandlerCalled = false;
+                dispatchKeydown($menuRoot.get(0), key);
+                this.clock.tick(0);
+
+                assert.strictEqual(menuHandlerCalled, false,
+                    `menu's keyboard handler not invoked for "${key}" at toolbar nav level`);
+            }, this);
+        } finally {
+            menuInstance._keyboardHandler = originalHandler;
+        }
+    });
+
+    QUnit.test('Tab landing directly on .dx-menu root does not auto-activate menu (toolbar resets to nav level)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        this.clock.tick(0);
+
+        const $menuRoot = $items.eq(1).find('.dx-menu').first();
+        const menuInstance = $menuRoot.dxMenu('instance');
+
+        $menuRoot.get(0).focus();
+        this.clock.tick(0);
+
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'menu is reset to nav level — focusedElement cleared by toolbar _focusInHandler');
+        assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
+            '.dx-menu root does not have dx-state-focused after Tab in');
+    });
+});
 QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
     function makeOverflowToolbar($el) {
         return $el.dxToolbar({

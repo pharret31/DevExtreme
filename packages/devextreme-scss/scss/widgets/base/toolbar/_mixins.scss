@@ -1,0 +1,32 @@
+@mixin dx-toolbar-focus-outline(
+  $accent-color,
+) {
+  .dx-toolbar {
+    .dx-toolbar-item {
+      [tabindex="0"]:focus-visible {
+        outline: 2px solid $accent-color;
+        outline-offset: 1px;
+        border-radius: 4px;
+      }
+    }
+
+    .dx-toolbar-menu-container {
+      [tabindex="0"]:focus-visible {
+        outline: 2px solid $accent-color;
+        outline-offset: 1px;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  .dx-dropdownmenu-list {
+    .dx-list-item {
+      [tabindex="0"]:focus-visible {
+        outline: 2px solid $accent-color;
+        outline-offset: 1px;
+        border-radius: 4px;
+      }
+    }
+  }
+}
+
