@@ -1,7 +1,7 @@
 @mixin dx-toolbar-focus-outline(
   $accent-color,
 ) {
-  .dx-toolbar {
+  .dx-toolbar.dx-toolbar-focus-state-enabled {
     .dx-toolbar-item {
       [tabindex="0"]:focus-visible {
         outline: 2px solid $accent-color;
@@ -19,12 +19,14 @@
     }
   }
 
-  .dx-dropdownmenu-list {
-    .dx-list-item {
-      [tabindex="0"]:focus-visible {
-        outline: 2px solid $accent-color;
-        outline-offset: 1px;
-        border-radius: 4px;
+  .dx-dropdownmenu-popup-wrapper.dx-toolbar-focus-state-enabled {
+    .dx-dropdownmenu-list {
+      .dx-list-item {
+        [tabindex="0"]:focus-visible {
+          outline: 2px solid $accent-color;
+          outline-offset: 1px;
+          border-radius: 4px;
+        }
       }
     }
   }

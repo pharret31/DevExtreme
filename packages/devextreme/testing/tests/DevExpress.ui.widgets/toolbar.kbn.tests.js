@@ -5,6 +5,7 @@ import {
     DROP_DOWN_MENU_BUTTON_CLASS,
     DROP_DOWN_MENU_POPUP_WRAPPER_CLASS,
 } from '__internal/ui/toolbar/internal/toolbar.menu';
+import { TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from '__internal/ui/toolbar/constants';
 import { BUTTON_CLASS } from '__internal/ui/button/button';
 import { LIST_ITEM_CLASS } from '__internal/ui/list/list.base';
 import {
@@ -3924,6 +3925,133 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         assert.strictEqual(event.defaultPrevented, false,
             'Tab keydown is not prevented by toolbar');
+    });
+
+    QUnit.test('focusStateEnabled:true (default) — toolbar element has dx-toolbar-focus-state-enabled class', function(assert) {
+        this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+            ],
+        });
+
+        assert.ok(
+            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'toolbar has dx-toolbar-focus-state-enabled class when focusStateEnabled:true'
+        );
+    });
+
+    QUnit.test('focusStateEnabled:false — toolbar element does NOT have dx-toolbar-focus-state-enabled class', function(assert) {
+        this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+            ],
+        });
+
+        assert.notOk(
+            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'toolbar does not have dx-toolbar-focus-state-enabled class when focusStateEnabled:false'
+        );
+    });
+
+    QUnit.test('changing focusStateEnabled at runtime toggles dx-toolbar-focus-state-enabled class', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+            ],
+        }).dxToolbar('instance');
+
+        assert.ok(
+            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'class is present when focusStateEnabled:true'
+        );
+
+        toolbar.option('focusStateEnabled', false);
+
+        assert.notOk(
+            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'class is removed after setting focusStateEnabled:false'
+        );
+
+        toolbar.option('focusStateEnabled', true);
+
+        assert.ok(
+            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'class is re-added after setting focusStateEnabled:true'
+        );
+    });
+
+    QUnit.test('focusStateEnabled:true — overflow popup wrapper has dx-toolbar-focus-state-enabled class', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        assert.ok(
+            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'popup wrapper has dx-toolbar-focus-state-enabled class when focusStateEnabled:true'
+        );
+    });
+
+    QUnit.test('focusStateEnabled:false — overflow popup wrapper does NOT have dx-toolbar-focus-state-enabled class', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: false,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        assert.notOk(
+            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'popup wrapper does not have dx-toolbar-focus-state-enabled class when focusStateEnabled:false'
+        );
+    });
+
+    QUnit.test('changing focusStateEnabled at runtime toggles dx-toolbar-focus-state-enabled on popup wrapper', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            focusStateEnabled: true,
+            items: [
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
+            ],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+
+        assert.ok(
+            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'popup wrapper has class when focusStateEnabled:true'
+        );
+
+        toolbar.option('focusStateEnabled', false);
+
+        assert.notOk(
+            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'popup wrapper loses class after setting focusStateEnabled:false'
+        );
+
+        toolbar.option('focusStateEnabled', true);
+
+        assert.ok(
+            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+            'popup wrapper regains class after setting focusStateEnabled:true'
+        );
     });
 });
 

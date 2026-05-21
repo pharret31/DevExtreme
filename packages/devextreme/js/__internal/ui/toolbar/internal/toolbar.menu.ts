@@ -20,6 +20,7 @@ import type { WidgetProperties } from '@ts/core/widget/widget';
 import Widget from '@ts/core/widget/widget';
 import Button from '@ts/ui/button/wrapper';
 import Popup from '@ts/ui/popup/m_popup';
+import { TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from '@ts/ui/toolbar/constants';
 import ToolbarMenuList, { TOOLBAR_MENU_ACTION_CLASS } from '@ts/ui/toolbar/internal/toolbar.menu.list';
 import { toggleItemFocusableElementTabIndex } from '@ts/ui/toolbar/toolbar.utils';
 
@@ -254,7 +255,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         // @ts-expect-error
         component.$wrapper()
           .addClass(DROP_DOWN_MENU_POPUP_WRAPPER_CLASS)
-          .addClass(DROP_DOWN_MENU_POPUP_CLASS);
+          .addClass(DROP_DOWN_MENU_POPUP_CLASS)
+          .toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!listFocusStateEnabled);
       },
       deferRendering: false,
       preventScrollEvents: false,
@@ -481,6 +483,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
       case 'listFocusStateEnabled':
         this._list?.option('focusStateEnabled', value);
         this._popup?.option('focusStateEnabled', !value);
+        this._popup?.$wrapper()?.toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!value);
         break;
       case 'onItemRendered':
         this._list?.option(name, value);

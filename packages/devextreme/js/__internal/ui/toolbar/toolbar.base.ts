@@ -23,7 +23,7 @@ import type { SupportedKeys } from '@ts/core/widget/widget';
 import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
-import { TOOLBAR_CLASS } from './constants';
+import { TOOLBAR_CLASS, TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from './constants';
 import {
   closeItemWidget, getItemFocusTarget, isItemWidgetOpened,
 } from './toolbar.utils';
@@ -664,8 +664,10 @@ class ToolbarBase<
   }
 
   _renderToolbar(): void {
+    const { focusStateEnabled } = this.option();
     this.$element()
-      .addClass(TOOLBAR_CLASS);
+      .addClass(TOOLBAR_CLASS)
+      .toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!focusStateEnabled);
 
     this._$toolbarItemsContainer = $('<div>')
       .addClass(TOOLBAR_ITEMS_CONTAINER_CLASS)
@@ -956,7 +958,7 @@ class ToolbarBase<
   }
 
   _optionChanged(args: OptionChanged<TProperties>): void {
-    const { name } = args;
+    const { name, value } = args;
 
     switch (name) {
       case 'width':
@@ -970,6 +972,10 @@ class ToolbarBase<
         break;
       case 'compactMode':
         this._applyCompactMode();
+        break;
+      case 'focusStateEnabled':
+        this.$element().toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!value);
+        super._optionChanged(args);
         break;
       case 'grouped':
         break;
