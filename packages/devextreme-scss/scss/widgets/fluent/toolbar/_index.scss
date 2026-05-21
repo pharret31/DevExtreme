@@ -182,4 +182,4 @@
   }
 }
 
-@include dx-toolbar-focus-outline($base-accent);
+@include dx-toolbar-focus-outline($base-accent, $fluent-base-border-radius);

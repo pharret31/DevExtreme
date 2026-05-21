@@ -12,6 +12,7 @@
 @use "../checkBox/sizes" as *;
 @use "mixins" as *;
 @use "../../base/toolbar";
+@use "../../base/toolbar/mixins" as *;
 
 // adduse
 @use "../dropDownMenu";
@@ -30,18 +31,6 @@
   &.dx-toolbar-multiline {
     .dx-toolbar-item {
       height: $material-toolbar-height;
-    }
-  }
-
-  .dx-toolbar-item {
-    [tabindex="0"]:focus-visible {
-      @include dx-toolbar-focus-outline();
-    }
-  }
-
-  .dx-toolbar-menu-container {
-    [tabindex="0"]:focus-visible {
-      @include dx-toolbar-focus-outline();
     }
   }
 }
@@ -219,12 +208,4 @@
   padding: 4px;
 }
 
-.dx-dropdownmenu-list {
-  .dx-list-item {
-    :is(.dx-texteditor, .dx-checkbox, .dx-tabs, .dx-switch)[tabindex="0"]:focus-visible {
-      @include dx-toolbar-focus-outline();
-    }
-  }
-}
-
-
+@include dx-toolbar-focus-outline($base-accent, $material-base-border-radius);

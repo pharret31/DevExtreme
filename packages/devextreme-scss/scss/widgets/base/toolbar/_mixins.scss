@@ -1,12 +1,13 @@
 @mixin dx-toolbar-focus-outline(
   $accent-color,
+  $border-radius,
 ) {
   .dx-toolbar.dx-toolbar-focus-state-enabled {
     .dx-toolbar-item {
       [tabindex="0"]:focus-visible {
         outline: 2px solid $accent-color;
         outline-offset: 1px;
-        border-radius: 4px;
+        border-radius: $border-radius;
       }
     }
 
@@ -14,7 +15,7 @@
       [tabindex="0"]:focus-visible {
         outline: 2px solid $accent-color;
         outline-offset: 1px;
-        border-radius: 4px;
+        border-radius: $border-radius;
       }
     }
   }
@@ -25,7 +26,7 @@
         [tabindex="0"]:focus-visible {
           outline: 2px solid $accent-color;
           outline-offset: 1px;
-          border-radius: 4px;
+          border-radius: $border-radius;
         }
       }
     }
