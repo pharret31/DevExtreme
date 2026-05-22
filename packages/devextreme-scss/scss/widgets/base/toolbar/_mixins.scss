@@ -2,21 +2,27 @@
   $accent-color,
   $border-radius,
 ) {
-  .dx-toolbar.dx-toolbar-focus-state-enabled {
-    .dx-toolbar-item {
-      [tabindex="0"]:focus-visible {
-        outline: 2px solid $accent-color;
-        outline-offset: 1px;
-        border-radius: $border-radius;
-      }
+  .dx-toolbar-item.dx-state-focused {
+    [tabindex="0"]:focus-visible {
+      outline: 2px solid $accent-color;
+      outline-offset: 1px;
+      border-radius: $border-radius;
     }
+  }
 
-    .dx-toolbar-menu-container {
-      [tabindex="0"]:focus-visible {
-        outline: 2px solid $accent-color;
-        outline-offset: 1px;
-        border-radius: $border-radius;
-      }
+  .dx-toolbar-menu-container {
+    [tabindex="0"]:focus-visible {
+      outline: 2px solid $accent-color;
+      outline-offset: 1px;
+      border-radius: $border-radius;
+    }
+  }
+
+  .dx-toolbar-item[tabindex="0"].dx-state-focused:has(.dx-menu:not(.dx-state-focused)) {
+    .dx-menu {
+      outline: 2px solid $accent-color;
+      outline-offset: 1px;
+      border-radius: $border-radius;
     }
   }
 
@@ -24,6 +30,14 @@
     .dx-dropdownmenu-list {
       .dx-list-item {
         [tabindex="0"]:focus-visible {
+          outline: 2px solid $accent-color;
+          outline-offset: 1px;
+          border-radius: $border-radius;
+        }
+      }
+
+      .dx-list-item[tabindex="0"]:has(.dx-menu:not(.dx-state-focused)) {
+        .dx-menu {
           outline: 2px solid $accent-color;
           outline-offset: 1px;
           border-radius: $border-radius;

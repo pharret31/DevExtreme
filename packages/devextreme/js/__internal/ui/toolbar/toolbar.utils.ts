@@ -91,7 +91,9 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
   const widgetName = getWidgetName($widget);
   if (widgetName.toLowerCase().includes('dropdownbutton')) {
     $focusTarget = $focusTarget?.find(`.${BUTTON_GROUP_CLASS}`);
-  } else if ($widget.hasClass('dx-texteditor') || $widget.hasClass('dx-menu')) {
+  } else if ($widget.hasClass('dx-menu')) {
+    $focusTarget = $item;
+  } else if ($widget.hasClass('dx-texteditor')) {
     $focusTarget = $(itemInstance.element());
   } else {
     $focusTarget = $focusTarget ?? $(itemInstance.element());

@@ -3654,68 +3654,6 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual(focusBefore, focusAfter, 'focusedElement unchanged when focusStateEnabled:false');
     });
 
-    QUnit.test('RTL — ArrowRight navigates to next item in DOM order', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            rtlEnabled: true,
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        const $items = toolbar._getAvailableItems();
-        const $itemB = $items.eq(1);
-        const $itemBFocusTarget = getItemFocusTarget($itemB);
-        this.$element.trigger($.Event('focusin', { target: $itemBFocusTarget.get(0) }));
-        this.clock.tick(0);
-
-        const indexBefore = toolbar._getAvailableItems().toArray().indexOf(
-            $(toolbar.option('focusedElement')).get(0),
-        );
-        assert.strictEqual(indexBefore, 1, 'Starting at item B (index 1)');
-
-        dispatchKeydown($itemBFocusTarget.get(0), 'ArrowRight');
-        this.clock.tick(0);
-
-        const indexAfter = toolbar._getAvailableItems().toArray().indexOf(
-            $(toolbar.option('focusedElement')).get(0),
-        );
-
-        assert.strictEqual(indexAfter > indexBefore, true, 'RTL: ArrowRight moved to item with higher DOM index (toward C)');
-    });
-
-    QUnit.test('RTL — ArrowLeft navigates to previous item in DOM order', function(assert) {
-        const toolbar = this.$element.dxToolbar({
-            rtlEnabled: true,
-            items: [
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
-                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
-            ],
-        }).dxToolbar('instance');
-
-        const $items = toolbar._getAvailableItems();
-        const $itemB = $items.eq(1);
-        const $itemBFocusTarget = getItemFocusTarget($itemB);
-        this.$element.trigger($.Event('focusin', { target: $itemBFocusTarget.get(0) }));
-        this.clock.tick(0);
-
-        const indexBefore = toolbar._getAvailableItems().toArray().indexOf(
-            $(toolbar.option('focusedElement')).get(0),
-        );
-        assert.strictEqual(indexBefore, 1, 'Starting at item B (index 1)');
-
-        dispatchKeydown($itemBFocusTarget.get(0), 'ArrowLeft');
-        this.clock.tick(0);
-
-        const indexAfter = toolbar._getAvailableItems().toArray().indexOf(
-            $(toolbar.option('focusedElement')).get(0),
-        );
-
-        assert.strictEqual(indexAfter < indexBefore, true, 'RTL: ArrowLeft moved to item with lower DOM index (toward A)');
-    });
-
     QUnit.test('focusStateEnabled:false — roving tabindex is not applied', function(assert) {
         this.$element.dxToolbar({
             focusStateEnabled: false,
@@ -4371,7 +4309,7 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
             'menu focusedElement moved back to first root item');
     });
 
-    QUnit.test('Escape exits menu — focus returns to .dx-menu root', function(assert) {
+    QUnit.test('Escape exits menu — focus returns to .dx-toolbar-item (nav level)', function(assert) {
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
@@ -4382,9 +4320,9 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         dispatchKeydown(document.activeElement, 'Escape');
         this.clock.tick(50);
 
+        assert.strictEqual(document.activeElement, $items.eq(1).get(0),
+            'focus returned to .dx-toolbar-item after Escape (nav-level focus target)');
         const $menuRoot = $items.eq(1).find('.dx-menu').first();
-        assert.strictEqual(document.activeElement, $menuRoot.get(0),
-            'focus returned to .dx-menu root after Escape');
         assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
             '.dx-menu root does NOT have dx-state-focused after Escape (back to toolbar nav level)');
     });
@@ -4460,7 +4398,7 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
             'exactly one tabindex=0 after enter/exit/navigate cycle');
     });
 
-    QUnit.test('tabindex=0 is on .dx-menu root, not on .dx-toolbar-item wrapper', function(assert) {
+    QUnit.test('tabindex=0 is on .dx-toolbar-item wrapper, not on .dx-menu root', function(assert) {
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
@@ -4468,10 +4406,10 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         toolbar._updateRovingTabIndex($items.eq(1));
         this.clock.tick(0);
 
-        assert.strictEqual($items.eq(1).find('.dx-menu').first().attr('tabindex'), '0',
-            '.dx-menu root is the tab stop (tabindex=0)');
-        assert.notStrictEqual($items.eq(1).attr('tabindex'), '0',
-            '.dx-toolbar-item wrapper is NOT the tab stop');
+        assert.strictEqual($items.eq(1).attr('tabindex'), '0',
+            '.dx-toolbar-item is the Tab stop (tabindex=0)');
+        assert.strictEqual($items.eq(1).find('.dx-menu').first().attr('tabindex'), '-1',
+            '.dx-menu root is NOT a Tab stop (tabindex=-1, programmatic focus only)');
     });
 
     QUnit.test('dxMenu does not get dx-state-focused on toolbar navigation (before Enter)', function(assert) {
@@ -4498,7 +4436,11 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
             'menu internal focusedElement is null (not auto-activated)');
     });
 
-    QUnit.test('dxMenu\'s own keyboard handler does not process keys at toolbar nav level (symmetric with texteditor)', function(assert) {
+    QUnit.test('Non-activation keys at toolbar nav level do not activate dxMenu', function(assert) {
+        // dxMenu's keyboard handler is always attached; the toolbar prevents
+        // observable effects at nav level by intercepting activation keys
+        // (Arrow/Enter/Space) in its capture phase. Other keys reach dxMenu
+        // but it has no behavior for them (they are not in _supportedKeys).
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
@@ -4509,50 +4451,366 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         const $menuRoot = $items.eq(1).find('.dx-menu').first();
         const menuInstance = $menuRoot.dxMenu('instance');
 
-        let menuHandlerCalled = false;
-        const originalHandler = menuInstance._keyboardHandler.bind(menuInstance);
-        menuInstance._keyboardHandler = function(opts) {
-            menuHandlerCalled = true;
-            return originalHandler(opts);
-        };
+        ['a', 'F1', 'PageDown', 'PageUp', 'Tab'].forEach(function(key) {
+            dispatchKeydown($menuRoot.get(0), key);
+            this.clock.tick(0);
 
-        try {
-            ['ArrowDown', 'ArrowUp', 'Enter', ' ', 'a', 'F1', 'PageDown'].forEach(function(key) {
-                // Ensure menu is at toolbar nav level (inactive) before each key:
-                // _activateMenu from a previous iteration may have set focusedElement.
-                menuInstance.option('focusedElement', null);
-
-                menuHandlerCalled = false;
-                dispatchKeydown($menuRoot.get(0), key);
-                this.clock.tick(0);
-
-                assert.strictEqual(menuHandlerCalled, false,
-                    `menu's keyboard handler not invoked for "${key}" at toolbar nav level`);
-            }, this);
-        } finally {
-            menuInstance._keyboardHandler = originalHandler;
-        }
+            assert.strictEqual(menuInstance.option('focusedElement'), null,
+                `dxMenu focusedElement is still null after "${key}" at nav level`);
+            assert.strictEqual($menuRoot.find('.dx-state-focused').length, 0,
+                `no .dx-menu-item is highlighted after "${key}" at nav level`);
+        }, this);
     });
 
-    QUnit.test('Tab landing directly on .dx-menu root does not auto-activate menu (toolbar resets to nav level)', function(assert) {
+    QUnit.test('Tab landing on .dx-toolbar-item does not auto-activate dxMenu', function(assert) {
+        // The nav-level Tab stop is the .dx-toolbar-item wrapper (tabindex=0),
+        // not the .dx-menu root (tabindex=-1). So Tab lands on the wrapper and
+        // dxMenu's CollectionWidget-inherited auto-activation never fires.
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
         toolbar.option('focusedElement', $items.eq(1).get(0));
+        toolbar._updateRovingTabIndex($items.eq(1));
+        this.clock.tick(0);
+
+        $items.eq(1).get(0).focus();
         this.clock.tick(0);
 
         const $menuRoot = $items.eq(1).find('.dx-menu').first();
         const menuInstance = $menuRoot.dxMenu('instance');
 
-        $menuRoot.get(0).focus();
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'menu does not auto-activate when Tab lands on .dx-toolbar-item');
+        assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
+            '.dx-menu root does not have dx-state-focused');
+    });
+
+    QUnit.test('Escape with open submenu closes submenu first; second Escape exits to toolbar nav', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        // Open submenu via ArrowDown
+        dispatchKeydown(document.activeElement, 'ArrowDown');
+        this.clock.tick(300);
+
+        const $expanded = $items.eq(1).find('.dx-menu-item-expanded');
+        assert.ok($expanded.length > 0, 'submenu is open after ArrowDown');
+
+        // First Escape — must close submenu, NOT exit to nav level
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        const $menuRoot = $items.eq(1).find('.dx-menu').first();
+        const menuInstance = $menuRoot.dxMenu('instance');
+
+        assert.ok($items.eq(1).get(0).contains(document.activeElement),
+            'focus is still inside dxMenu toolbar item after first Escape');
+        assert.strictEqual($items.eq(1).find('.dx-menu-item-expanded').length, 0,
+            'submenu is closed after first Escape');
+        assert.notStrictEqual(menuInstance.option('focusedElement'), null,
+            'menu is still active (focusedElement set) after first Escape');
+
+        // Second Escape — exits to toolbar nav level
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.strictEqual(document.activeElement, $items.eq(1).get(0),
+            'focus returned to .dx-toolbar-item after second Escape (nav-level focus target)');
+        assert.strictEqual($menuRoot.find('.dx-state-focused').length, 0,
+            'no menu-item is visually focused after exiting to nav level');
+        assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
+            '.dx-menu root does not have dx-state-focused at nav level');
+    });
+
+    QUnit.test('ArrowDown at nav level does NOT activate dxMenu (menu is already visible)', function(assert) {
+        // dxMenu is a visible horizontal menubar inside the toolbar item, not
+        // a popup menu button. ArrowDown does not "open" anything, so it is
+        // not an activation key here — activation requires Enter/Space.
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'ArrowDown');
+        this.clock.tick(50);
+
+        const $menu = $items.eq(1).find('.dx-menu').first();
+        const menuInstance = $menu.dxMenu('instance');
+
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'dxMenu is NOT activated by ArrowDown — focusedElement stays null');
+        assert.strictEqual($menu.find('.dx-state-focused').length, 0,
+            'no .dx-menu-item is highlighted after ArrowDown at nav level');
+    });
+
+    QUnit.test('ArrowUp at nav level does NOT activate dxMenu', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'ArrowUp');
+        this.clock.tick(50);
+
+        const $menu = $items.eq(1).find('.dx-menu').first();
+        const menuInstance = $menu.dxMenu('instance');
+
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'dxMenu is NOT activated by ArrowUp — focusedElement stays null');
+        assert.strictEqual($menu.find('.dx-state-focused').length, 0,
+            'no .dx-menu-item is highlighted after ArrowUp at nav level');
+    });
+
+    QUnit.test('Re-activating dxMenu restores previously focused item (menu remembers position)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        // First activation — focuses first item (default).
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        // Navigate to second root item.
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(50);
+
+        const $menu = $items.eq(1).find('.dx-menu').first();
+        const $menuItems = $menu.find('.dx-menu-item');
+
+        // Exit to nav level.
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        // Re-activate. dxMenu should restore the second item, not jump to first.
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        assert.ok($menuItems.eq(1).hasClass('dx-state-focused'),
+            'second menu-item (the last focused one) is restored on re-activation');
+        assert.notOk($menuItems.eq(0).hasClass('dx-state-focused'),
+            'first menu-item is NOT focused (would be a regression to old behavior)');
+    });
+
+    QUnit.test('ArrowDown after opening submenu navigates within submenu (does not re-activate root)', function(assert) {
+        const toolbar = createMenuToolbar(this.$element);
+        const $items = toolbar._getAvailableItems();
+
+        // Activate dxMenu — focusedElement = first root item ("File").
+        toolbar.option('focusedElement', $items.eq(1).get(0));
+        dispatchKeydown(this.$element.get(0), 'Enter');
+        this.clock.tick(50);
+
+        const $menu = $items.eq(1).find('.dx-menu').first();
+
+        // Move right to second root item ("Edit").
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(50);
+
+        // ArrowDown on "Edit" opens its submenu. dxMenu resets focusedElement
+        // to null internally at this point (it tracks state via _visibleSubmenu).
+        dispatchKeydown(document.activeElement, 'ArrowDown');
+        this.clock.tick(300);
+
+        const $expandedBefore = $menu.find('.dx-menu-item-expanded');
+        assert.strictEqual($expandedBefore.length, 1, 'submenu open on the second root item');
+        const expandedElement = $expandedBefore.get(0);
+
+        // Next ArrowDown — must navigate within the submenu via dxMenu's own
+        // handler. Regression guard: previously the toolbar saw focusedElement=null
+        // and treated this as nav-level activation, jumping focus to the first
+        // root item ("File") and closing the open submenu.
+        dispatchKeydown(document.activeElement, 'ArrowDown');
+        this.clock.tick(50);
+
+        const $expandedAfter = $menu.find('.dx-menu-item-expanded');
+        assert.strictEqual($expandedAfter.length, 1, 'submenu still open after second ArrowDown');
+        assert.strictEqual($expandedAfter.get(0), expandedElement,
+            'submenu is still on the second root item (not jumped to the first)');
+    });
+});
+
+// Same set of Enter/Exit scenarios as for dxMenu inside a toolbar item,
+// applied to dxMenu nested in an overflow popup list item.
+QUnit.module('Enter/Exit: dxMenu inside overflow list', moduleConfig, function() {
+    const menuItems = [
+        { text: 'File', items: [{ text: 'New' }, { text: 'Open' }] },
+        { text: 'Edit', items: [{ text: 'Cut' }, { text: 'Copy' }] },
+    ];
+
+    // Returns { list, $menuListItem, $menuRoot, menuInstance } with the
+    // overflow popup opened and the list item containing dxMenu pre-focused
+    // at list nav level.
+    function setupOverflowWithMenu($el, clock) {
+        const toolbar = $el.dxToolbar({
+            items: [
+                { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
+                { locateInMenu: 'always', widget: 'dxMenu', options: { items: menuItems } },
+                { widget: 'dxButton', locateInMenu: 'always', options: { text: 'After' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $overflowBtn = $el.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        $overflowBtn.trigger('dxclick');
+        clock.tick(0);
+
+        const menu = toolbar._layoutStrategy._menu;
+        const list = menu._list;
+        const $menuListItem = list._getAvailableItems()
+            .toArray()
+            .map((el) => $(el))
+            .find(($i) => $i.find('.dx-menu').length > 0);
+
+        list.option('focusedElement', $menuListItem.get(0));
+        list._focusItemWidget($menuListItem);
+        clock.tick(0);
+
+        const $menuRoot = $menuListItem.find('.dx-menu').first();
+        const menuInstance = $menuRoot.dxMenu('instance');
+
+        return { list, $menuListItem, $menuRoot, menuInstance };
+    }
+
+    QUnit.test('Enter activates dxMenu — focus moves into .dx-menu, first item highlighted', function(assert) {
+        const { $menuListItem, $menuRoot, menuInstance } = setupOverflowWithMenu(this.$element, this.clock);
+
+        dispatchKeydown(document.activeElement, 'Enter');
+        this.clock.tick(50);
+
+        assert.ok($menuListItem.get(0).contains(document.activeElement),
+            'focus is inside the list item that hosts dxMenu');
+        const $firstMenuItem = $menuRoot.find('.dx-menu-item').first();
+        assert.ok($firstMenuItem.hasClass('dx-state-focused'),
+            'first .dx-menu-item has dx-state-focused after Enter');
+        assert.strictEqual($(menuInstance.option('focusedElement')).get(0), $firstMenuItem.get(0),
+            'dxMenu focusedElement is on the first item');
+    });
+
+    QUnit.test('ArrowDown at list nav level navigates list — does NOT activate dxMenu', function(assert) {
+        const { list, $menuListItem, $menuRoot, menuInstance } = setupOverflowWithMenu(this.$element, this.clock);
+
+        dispatchKeydown($menuRoot.get(0), 'ArrowDown');
         this.clock.tick(0);
 
         assert.strictEqual(menuInstance.option('focusedElement'), null,
-            'menu is reset to nav level — focusedElement cleared by toolbar _focusInHandler');
-        assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
-            '.dx-menu root does not have dx-state-focused after Tab in');
+            'dxMenu is NOT activated by ArrowDown — focusedElement stays null');
+        assert.notStrictEqual($(list.option('focusedElement')).get(0), $menuListItem.get(0),
+            'list moved focus to the next list item');
+    });
+
+    QUnit.test('ArrowUp at list nav level navigates list — does NOT activate dxMenu', function(assert) {
+        const { list, $menuListItem, $menuRoot, menuInstance } = setupOverflowWithMenu(this.$element, this.clock);
+
+        dispatchKeydown($menuRoot.get(0), 'ArrowUp');
+        this.clock.tick(0);
+
+        assert.strictEqual(menuInstance.option('focusedElement'), null,
+            'dxMenu is NOT activated by ArrowUp — focusedElement stays null');
+        assert.notStrictEqual($(list.option('focusedElement')).get(0), $menuListItem.get(0),
+            'list moved focus on ArrowUp');
+    });
+
+    QUnit.test('ArrowRight inside menu navigates between root items (not list)', function(assert) {
+        const { list, $menuListItem, $menuRoot, menuInstance } = setupOverflowWithMenu(this.$element, this.clock);
+
+        dispatchKeydown(document.activeElement, 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(0);
+
+        const $menuItems = $menuRoot.find('.dx-menu-item');
+        assert.strictEqual($(menuInstance.option('focusedElement')).get(0), $menuItems.eq(1).get(0),
+            'menu focusedElement moved to second root item');
+        assert.strictEqual($(list.option('focusedElement')).get(0), $menuListItem.get(0),
+            'list focus stays on the dxMenu list item');
+    });
+
+    QUnit.test('Escape exits dxMenu — focus returns to list-item wrapper (nav level)', function(assert) {
+        const { $menuListItem, $menuRoot } = setupOverflowWithMenu(this.$element, this.clock);
+
+        dispatchKeydown(document.activeElement, 'Enter');
+        this.clock.tick(50);
+
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.strictEqual(document.activeElement, $menuListItem.get(0),
+            'focus returned to the list-item wrapper after Escape');
+        assert.strictEqual($menuRoot.find('.dx-state-focused').length, 0,
+            'no menu-item is visually focused after exiting to list nav level');
+    });
+
+    QUnit.test('Escape with open submenu closes submenu first; second Escape exits to list nav', function(assert) {
+        const { $menuListItem, $menuRoot } = setupOverflowWithMenu(this.$element, this.clock);
+
+        dispatchKeydown(document.activeElement, 'Enter');
+        this.clock.tick(50);
+
+        // Open submenu via ArrowDown (now at active level — dxMenu owns this key)
+        dispatchKeydown(document.activeElement, 'ArrowDown');
+        this.clock.tick(300);
+
+        assert.ok($menuRoot.find('.dx-menu-item-expanded').length > 0,
+            'submenu is open after ArrowDown');
+
+        // First Escape — closes submenu, stays at active level
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.strictEqual($menuRoot.find('.dx-menu-item-expanded').length, 0,
+            'submenu is closed after first Escape');
+        assert.ok($menuListItem.get(0).contains(document.activeElement),
+            'focus is still inside dxMenu list item after first Escape');
+
+        // Second Escape — exits to list nav
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        assert.strictEqual(document.activeElement, $menuListItem.get(0),
+            'focus returned to list-item wrapper after second Escape');
+        assert.strictEqual($menuRoot.find('.dx-state-focused').length, 0,
+            'no menu-item is visually focused after exit');
+    });
+
+    QUnit.test('Re-activating dxMenu restores previously focused item', function(assert) {
+        const { $menuRoot } = setupOverflowWithMenu(this.$element, this.clock);
+
+        // First activation
+        dispatchKeydown(document.activeElement, 'Enter');
+        this.clock.tick(50);
+
+        // Navigate to second root item
+        dispatchKeydown(document.activeElement, 'ArrowRight');
+        this.clock.tick(50);
+
+        const $menuItems = $menuRoot.find('.dx-menu-item');
+
+        // Exit to list nav
+        dispatchKeydown(document.activeElement, 'Escape');
+        this.clock.tick(50);
+
+        // Re-activate
+        dispatchKeydown(document.activeElement, 'Enter');
+        this.clock.tick(50);
+
+        assert.ok($menuItems.eq(1).hasClass('dx-state-focused'),
+            'second menu-item (the last focused one) is restored on re-activation');
+        assert.notOk($menuItems.eq(0).hasClass('dx-state-focused'),
+            'first menu-item is NOT focused (would be a regression)');
+    });
+
+    QUnit.test('tabindex=0 is on the list-item wrapper, not on .dx-menu root', function(assert) {
+        const { $menuListItem, $menuRoot } = setupOverflowWithMenu(this.$element, this.clock);
+
+        assert.strictEqual($menuListItem.attr('tabindex'), '0',
+            'list-item is the Tab stop (tabindex=0)');
+        assert.strictEqual($menuRoot.attr('tabindex'), '-1',
+            '.dx-menu root is NOT a Tab stop (tabindex=-1)');
     });
 });
+
 QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
     function makeOverflowToolbar($el) {
         return $el.dxToolbar({

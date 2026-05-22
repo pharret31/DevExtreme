@@ -33,8 +33,6 @@ export default class ToolbarMenuList extends ListBase {
 
   _keyboardListenerId?: string;
 
-  _menuActivating = false;
-
   protected _activeStateUnit(): string {
     return `.${TOOLBAR_MENU_ACTION_CLASS}:not(.${TOOLBAR_HIDDEN_BUTTON_GROUP_CLASS})`;
   }
@@ -172,19 +170,11 @@ export default class ToolbarMenuList extends ListBase {
 
       const { focusedElement } = this.option();
       const $item = $(focusedElement);
-
       if ($item.length) {
         const $textEditor = $item.find('.dx-texteditor-input').first();
         if ($textEditor.length) {
           e.preventDefault();
           ($textEditor.get(0) as HTMLElement).focus();
-          return;
-        }
-
-        const $menu = $item.find('.dx-menu').first();
-        if ($menu.length) {
-          e.preventDefault();
-          this._activateMenu($menu);
           return;
         }
       }
@@ -237,6 +227,10 @@ export default class ToolbarMenuList extends ListBase {
       }
 
       if (e.key === 'Escape' && (isTextInput || isMenu)) {
+        if (isMenu && this._closeOpenSubmenu(target, e)) {
+          return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -263,6 +257,11 @@ export default class ToolbarMenuList extends ListBase {
       if (e.key === 'Tab') {
         this._onTabPress?.();
 
+        return;
+      }
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        this._handleActivationAtNavLevel(e);
         return;
       }
 
@@ -310,18 +309,7 @@ export default class ToolbarMenuList extends ListBase {
   }
 
   _isMenuTarget(target: HTMLElement): boolean {
-    if ($(target).closest('.dx-menu-item').length > 0) {
-      return true;
-    }
-
-    const $menu = $(target).closest('.dx-menu');
-    if (!$menu.length) {
-      return false;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const menuInstance = $menu.data('dxMenu') as any;
-    return !!menuInstance?.option?.('focusedElement');
+    return $(target).closest('.dx-menu, .dx-menu-item').length > 0;
   }
 
   _getItemFocusTarget($item: dxElementWrapper): dxElementWrapper {
@@ -411,6 +399,7 @@ export default class ToolbarMenuList extends ListBase {
 
       const $menu = $item.find('.dx-menu');
       if ($menu.length) {
+        $menu.attr('tabIndex', -1);
         $menu.find('[tabindex]').attr('tabIndex', -1);
       }
 
@@ -440,15 +429,6 @@ export default class ToolbarMenuList extends ListBase {
 
     if ($item.length && getItemFocusTarget($item)?.length) {
       this.option('focusedElement', getPublicElement($item));
-
-      if ($target.hasClass('dx-menu') && !this._menuActivating) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const menuInstance = $target.data('dxMenu') as any;
-        menuInstance?._detachFocusEvents?.();
-        menuInstance?._detachKeyboardEvents?.();
-        menuInstance?.option?.('focusedElement', null);
-        $target.removeClass('dx-state-focused');
-      }
     }
   }
 
@@ -457,34 +437,50 @@ export default class ToolbarMenuList extends ListBase {
     if (!$focusTarget?.length) {
       return;
     }
-
-    if ($focusTarget.hasClass('dx-menu')) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const menuInstance = $focusTarget.data('dxMenu') as any;
-      menuInstance?._detachFocusEvents?.();
-      menuInstance?._detachKeyboardEvents?.();
-      menuInstance?.option?.('focusedElement', null);
-      $focusTarget.removeClass('dx-state-focused');
-    }
-
     ($focusTarget.get(0) as HTMLElement).focus();
   }
 
-  _activateMenu($menu: dxElementWrapper): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const menuInstance = $menu.data('dxMenu') as any;
-    if (!menuInstance) {
+  _handleActivationAtNavLevel(e: KeyboardEvent): void {
+    const { focusedElement } = this.option();
+    const $focused = $(focusedElement);
+
+    if (!$focused.length || isItemWidgetOpened($focused)) {
       return;
     }
 
-    this._menuActivating = true;
-    try {
-      menuInstance._attachFocusEvents();
-      menuInstance._attachKeyboardEvents();
-      menuInstance.focus();
-    } finally {
-      this._menuActivating = false;
+    const $menu = $focused.find('.dx-menu').first();
+    if ($menu.length) {
+      e.preventDefault();
+      e.stopPropagation();
+      this._activateMenu($menu);
     }
+  }
+
+  _activateMenu($menu: dxElementWrapper): void {
+    ($menu.get(0) as HTMLElement).focus();
+  }
+
+  _closeOpenSubmenu(target: HTMLElement, e: Event): boolean {
+    const $menu = $(target).closest('.dx-menu');
+    if (!$menu.length) {
+      return false;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const menuInstance = $menu.data('dxMenu') as any;
+    if (!menuInstance?._visibleSubmenu) {
+      return false;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const $anchor = $menu.find('.dx-menu-item-expanded').first();
+    menuInstance._hideSubmenu(menuInstance._visibleSubmenu);
+
+    if ($anchor.length) {
+      menuInstance.option('focusedElement', getPublicElement($anchor));
+    }
+    return true;
   }
 
   _focusOutHandler(e: DxEvent): void {

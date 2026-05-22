@@ -80,8 +80,6 @@ class ToolbarBase<
 
   _captureKeydownHandler?: EventListener;
 
-  _menuActivating = false;
-
   _getSynchronizableOptionsForCreateComponent(): (keyof TProperties)[] {
     return super._getSynchronizableOptionsForCreateComponent().filter((item) => item !== 'disabled');
   }
@@ -189,25 +187,11 @@ class ToolbarBase<
 
       const { focusedElement } = this.option();
       const $item = $(focusedElement);
-
       if ($item.length) {
-        if (this._isOverflowItem($item)) {
-          e.preventDefault();
-          this._openOverflowMenu('first');
-          return;
-        }
-
         const $textEditor = $item.find('.dx-texteditor-input').first();
         if ($textEditor.length) {
           e.preventDefault();
           ($textEditor.get(0) as HTMLElement).focus();
-          return;
-        }
-
-        const $menu = $item.find('.dx-menu').first();
-        if ($menu.length) {
-          e.preventDefault();
-          this._activateMenu($menu);
           return;
         }
       }
@@ -251,7 +235,6 @@ class ToolbarBase<
     this._detachCaptureArrowHandler();
 
     const element = this.$element().get(0) as HTMLElement;
-    const { rtlEnabled } = this.option();
 
     this._captureKeydownHandler = (evt: Event): void => {
       const e = evt as KeyboardEvent;
@@ -265,10 +248,14 @@ class ToolbarBase<
       }
 
       if (e.key === 'Escape' && (isTextInput || isMenu)) {
+        if (isMenu && this._closeOpenSubmenu(target, e)) {
+          return;
+        }
+
+        const $item = $(target).closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
         e.preventDefault();
         e.stopPropagation();
 
-        const $item = $(target).closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
         if ($item.length && closeItemWidget($item)) {
           return;
         }
@@ -281,8 +268,8 @@ class ToolbarBase<
       }
 
       const keyToLocation: Record<string, string> = {
-        ArrowRight: rtlEnabled ? 'left' : 'right',
-        ArrowLeft: rtlEnabled ? 'right' : 'left',
+        ArrowRight: 'right',
+        ArrowLeft: 'left',
         Home: 'first',
         End: 'last',
       };
@@ -291,32 +278,10 @@ class ToolbarBase<
 
       if (!location) {
         if (e.key === 'Enter' || e.key === ' ') {
-          const { focusedElement } = this.option();
-          const $focused = $(focusedElement);
-
-          if ($focused.length && this._isOverflowItem($focused)) {
-            e.preventDefault();
-            e.stopPropagation();
-            this._openOverflowMenu('first');
-          }
-          return;
+          this._handleActivationAtNavLevel(e);
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          this._handleOverflowOpenAtNavLevel(e);
         }
-
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-          const { focusedElement } = this.option();
-          const $focused = $(focusedElement);
-
-          if ($focused.length && isItemWidgetOpened($focused)) {
-            return;
-          }
-
-          if ($focused.length && this._isOverflowItem($focused)) {
-            e.preventDefault();
-            e.stopPropagation();
-            this._openOverflowMenu(e.key === 'ArrowUp' ? 'last' : 'first');
-          }
-        }
-
         return;
       }
 
@@ -351,21 +316,7 @@ class ToolbarBase<
   }
 
   _isMenuTarget(target: HTMLElement): boolean {
-    if ($(target).closest('.dx-menu-item').length > 0) {
-      return true;
-    }
-
-    // After Enter, DOM focus is on the menu's internal container (not on a
-    // .dx-menu-item itself). Detect "menu is in active mode" via its
-    // focusedElement option set by CollectionWidget activation.
-    const $menu = $(target).closest('.dx-menu');
-    if (!$menu.length) {
-      return false;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const menuInstance = $menu.data('dxMenu') as any;
-    return !!menuInstance?.option?.('focusedElement');
+    return $(target).closest('.dx-menu, .dx-menu-item').length > 0;
   }
 
   _isOverflowItem($item: dxElementWrapper): boolean {
@@ -465,6 +416,7 @@ class ToolbarBase<
 
       const $menu = $item.find('.dx-menu');
       if ($menu.length) {
+        $menu.attr('tabIndex', -1);
         $menu.find('[tabindex]').attr('tabIndex', -1);
       }
 
@@ -514,20 +466,6 @@ class ToolbarBase<
 
       if ($item.length && getItemFocusTarget($item)?.length) {
         this.option('focusedElement', getPublicElement($item));
-
-        // If focus landed on .dx-menu root externally (Tab from outside), the
-        // menu's own _focusInHandler already auto-activated. Detach to bring
-        // it back to silent nav level — symmetric with texteditor. Skip when
-        // we are intentionally activating (Enter) — focusin from _activateMenu
-        // bubbles here and must not undo activation.
-        if ($target.hasClass('dx-menu') && !this._menuActivating) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const menuInstance = $target.data('dxMenu') as any;
-          menuInstance?._detachFocusEvents?.();
-          menuInstance?._detachKeyboardEvents?.();
-          menuInstance?.option?.('focusedElement', null);
-          $target.removeClass('dx-state-focused');
-        }
       }
     }
   }
@@ -537,38 +475,70 @@ class ToolbarBase<
     if (!$focusTarget?.length) {
       return;
     }
-
-    if ($focusTarget.hasClass('dx-menu')) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const menuInstance = $focusTarget.data('dxMenu') as any;
-      // Detach menu's focus + keyboard handlers so focus on .dx-menu root is
-      // "silent" — symmetric with texteditor whose handlers are on inner input.
-      // Direct detach avoids the option-change side effect of stripping tabIndex.
-      menuInstance?._detachFocusEvents?.();
-      menuInstance?._detachKeyboardEvents?.();
-      menuInstance?.option?.('focusedElement', null);
-      $focusTarget.removeClass('dx-state-focused');
-    }
-
     ($focusTarget.get(0) as HTMLElement).focus();
   }
 
-  _activateMenu($menu: dxElementWrapper): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const menuInstance = $menu.data('dxMenu') as any;
-    if (!menuInstance) {
+  _handleActivationAtNavLevel(e: KeyboardEvent): void {
+    const { focusedElement } = this.option();
+    const $focused = $(focusedElement);
+
+    if (!$focused.length || isItemWidgetOpened($focused)) {
       return;
     }
 
-    this._menuActivating = true;
-    try {
-      // Re-attach handlers detached at nav level, then focus to activate.
-      menuInstance._attachFocusEvents();
-      menuInstance._attachKeyboardEvents();
-      menuInstance.focus();
-    } finally {
-      this._menuActivating = false;
+    if (this._isOverflowItem($focused)) {
+      e.preventDefault();
+      e.stopPropagation();
+      this._openOverflowMenu('first');
+      return;
     }
+
+    const $menu = $focused.find('.dx-menu').first();
+    if ($menu.length) {
+      e.preventDefault();
+      e.stopPropagation();
+      this._activateMenu($menu);
+    }
+  }
+
+  _handleOverflowOpenAtNavLevel(e: KeyboardEvent): void {
+    const { focusedElement } = this.option();
+    const $focused = $(focusedElement);
+
+    if (!$focused.length || !this._isOverflowItem($focused)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    this._openOverflowMenu(e.key === 'ArrowUp' ? 'last' : 'first');
+  }
+
+  _closeOpenSubmenu(target: HTMLElement, e: Event): boolean {
+    const $menu = $(target).closest('.dx-menu');
+    if (!$menu.length) {
+      return false;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const menuInstance = $menu.data('dxMenu') as any;
+    if (!menuInstance?._visibleSubmenu) {
+      return false;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const $anchor = $menu.find('.dx-menu-item-expanded').first();
+    menuInstance._hideSubmenu(menuInstance._visibleSubmenu);
+
+    if ($anchor.length) {
+      menuInstance.option('focusedElement', getPublicElement($anchor));
+    }
+    return true;
+  }
+
+  _activateMenu($menu: dxElementWrapper): void {
+    ($menu.get(0) as HTMLElement).focus();
   }
 
   _focusOutHandler(e: DxEvent): void {
