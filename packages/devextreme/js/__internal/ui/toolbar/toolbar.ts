@@ -1,6 +1,5 @@
 import registerComponent from '@js/core/component_registrator';
 import type { dxElementWrapper } from '@js/core/renderer';
-import $ from '@js/core/renderer';
 import type { Item } from '@js/ui/toolbar';
 import type { OptionChanged } from '@ts/core/widget/types';
 
@@ -160,8 +159,7 @@ class Toolbar extends ToolbarBase<Properties> {
       if (this._isMenuItem(item)) {
         toggleItemFocusableElementTabIndex(this, item);
       } else if (this.option('focusStateEnabled')) {
-        const { focusedElement } = this.option();
-        this._updateRovingTabIndex($(focusedElement));
+        this._resetRovingTabIndex();
       } else {
         toggleItemFocusableElementTabIndex(this, item);
       }
@@ -187,8 +185,7 @@ class Toolbar extends ToolbarBase<Properties> {
     menuItems.forEach((item) => toggleItemFocusableElementTabIndex(this, item));
 
     if (this.option('focusStateEnabled')) {
-      const { focusedElement } = this.option();
-      this._updateRovingTabIndex($(focusedElement));
+      this._resetRovingTabIndex();
     } else {
       toolbarItems.forEach((item) => toggleItemFocusableElementTabIndex(this, item));
     }

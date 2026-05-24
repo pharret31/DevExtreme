@@ -1,6 +1,5 @@
 import type { DefaultOptionsRule } from '@js/common';
 import { fx } from '@js/common/core/animation';
-import { keyboard } from '@js/common/core/events/short';
 import registerComponent from '@js/core/component_registrator';
 import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
@@ -24,8 +23,15 @@ import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
 import { TOOLBAR_CLASS, TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from './constants';
+import { RovingTabIndexNavigator } from './internal/roving.tabindex.navigator';
 import {
-  closeItemWidget, getItemFocusTarget, isItemWidgetOpened,
+  activateMenu,
+  closeItemWidget,
+  getItemFocusTarget,
+  isItemDisabled,
+  isItemWidgetOpened,
+  isMenuTarget,
+  isTextInputTarget,
 } from './toolbar.utils';
 
 export const TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
@@ -76,9 +82,7 @@ class ToolbarBase<
 
   _waitParentAnimationTimeout?: ReturnType<typeof setTimeout>;
 
-  _keyboardListenerId?: string;
-
-  _captureKeydownHandler?: EventListener;
+  _navigator?: RovingTabIndexNavigator;
 
   _getSynchronizableOptionsForCreateComponent(): (keyof TProperties)[] {
     return super._getSynchronizableOptionsForCreateComponent().filter((item) => item !== 'disabled');
@@ -170,36 +174,49 @@ class ToolbarBase<
   _supportedKeys(): SupportedKeys {
     const keys = super._supportedKeys();
 
+    if (!this.option('focusStateEnabled')) {
+      return keys;
+    }
+
     delete keys.leftArrow;
     delete keys.rightArrow;
-    delete keys.upArrow;
-    delete keys.downArrow;
     delete keys.home;
     delete keys.end;
 
-    const originalEnter = keys.enter;
-    keys.enter = (e: DxEvent<KeyboardEvent>): void => {
-      const target = e.target as HTMLElement;
-
-      if (this._isTextInputTarget(target) || this._isMenuTarget(target)) {
-        return;
-      }
-
-      const { focusedElement } = this.option();
-      const $item = $(focusedElement);
-      if ($item.length) {
-        const $textEditor = $item.find('.dx-texteditor-input').first();
-        if ($textEditor.length) {
-          e.preventDefault();
-          ($textEditor.get(0) as HTMLElement).focus();
-          return;
-        }
-      }
-
-      originalEnter?.call(this, e);
-    };
+    keys.upArrow = (e: DxEvent<KeyboardEvent>): void => this._handleOverflowOpenAtNavLevel(e);
+    keys.downArrow = (e: DxEvent<KeyboardEvent>): void => this._handleOverflowOpenAtNavLevel(e);
 
     return keys;
+  }
+
+  _enterKeyHandler(e: DxEvent<KeyboardEvent>): void {
+    if (!this.option('focusStateEnabled')) {
+      super._enterKeyHandler(e);
+      return;
+    }
+
+    const target = e.target as HTMLElement;
+    if (isTextInputTarget(target) || isMenuTarget(target)) {
+      return;
+    }
+
+    this._handleActivationAtNavLevel(e);
+    if (e.defaultPrevented) {
+      return;
+    }
+
+    const { focusedElement } = this.option();
+    const $item = $(focusedElement);
+    if ($item.length) {
+      const $textEditor = $item.find('.dx-texteditor-input').first();
+      if ($textEditor.length) {
+        e.preventDefault();
+        ($textEditor.get(0) as HTMLElement).focus();
+        return;
+      }
+    }
+
+    super._enterKeyHandler(e);
   }
 
   _renderFocusTarget(): void {
@@ -209,114 +226,23 @@ class ToolbarBase<
   _attachKeyboardEvents(): void {
     this._detachKeyboardEvents();
 
-    const { focusStateEnabled } = this.option();
-
-    if (focusStateEnabled) {
-      this._keyboardListenerId = keyboard.on(
-        this._keyboardEventBindingTarget(),
-        null,
-        (opts) => this._keyboardHandler(opts),
-      );
-
-      this._attachCaptureArrowHandler();
+    if (!this.option('focusStateEnabled')) {
+      super._attachKeyboardEvents();
+      return;
     }
+
+    this._navigator = new RovingTabIndexNavigator({
+      widget: this,
+      itemsSelector: `${this._itemSelector()}, .dx-dropdownmenu-button`,
+      direction: 'horizontal',
+    });
+    this._navigator.attach();
   }
 
   _detachKeyboardEvents(): void {
-    if (this._keyboardListenerId) {
-      keyboard.off(this._keyboardListenerId);
-      this._keyboardListenerId = undefined;
-    }
-
-    this._detachCaptureArrowHandler();
-  }
-
-  _attachCaptureArrowHandler(): void {
-    this._detachCaptureArrowHandler();
-
-    const element = this.$element().get(0) as HTMLElement;
-
-    this._captureKeydownHandler = (evt: Event): void => {
-      const e = evt as KeyboardEvent;
-      const target = e.target as HTMLElement;
-
-      const isTextInput = this._isTextInputTarget(target);
-      const isMenu = this._isMenuTarget(target);
-
-      if ((isTextInput || isMenu) && e.key !== 'Escape') {
-        return;
-      }
-
-      if (e.key === 'Escape' && (isTextInput || isMenu)) {
-        if (isMenu && this._closeOpenSubmenu(target, e)) {
-          return;
-        }
-
-        const $item = $(target).closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
-        e.preventDefault();
-        e.stopPropagation();
-
-        if ($item.length && closeItemWidget($item)) {
-          return;
-        }
-
-        if ($item.length) {
-          this._focusItemWidget($item);
-        }
-
-        return;
-      }
-
-      const keyToLocation: Record<string, string> = {
-        ArrowRight: 'right',
-        ArrowLeft: 'left',
-        Home: 'first',
-        End: 'last',
-      };
-
-      const location = keyToLocation[e.key];
-
-      if (!location) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          this._handleActivationAtNavLevel(e);
-        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-          this._handleOverflowOpenAtNavLevel(e);
-        }
-        return;
-      }
-
-      const { focusedElement } = this.option();
-      const $focused = $(focusedElement);
-      if ($focused.length && isItemWidgetOpened($focused)) {
-        return;
-      }
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      this._moveFocus(location);
-    };
-
-    element.addEventListener('keydown', this._captureKeydownHandler, true);
-  }
-
-  _detachCaptureArrowHandler(): void {
-    if (this._captureKeydownHandler) {
-      const element = this.$element().get(0) as HTMLElement;
-      element.removeEventListener('keydown', this._captureKeydownHandler, true);
-      this._captureKeydownHandler = undefined;
-    }
-  }
-
-  _isTextInputTarget(target: HTMLElement): boolean {
-    const tagName = target.tagName.toLowerCase();
-
-    return (tagName === 'input' || tagName === 'textarea')
-      && $(target).closest('.dx-texteditor').length > 0;
-  }
-
-  _isMenuTarget(target: HTMLElement): boolean {
-    return $(target).closest('.dx-menu, .dx-menu-item').length > 0;
+    this._navigator?.detach();
+    this._navigator = undefined;
+    super._detachKeyboardEvents();
   }
 
   _isOverflowItem($item: dxElementWrapper): boolean {
@@ -333,27 +259,11 @@ class ToolbarBase<
     return $items.filter(':visible');
   }
 
-  _isItemDisabled($item: dxElementWrapper): boolean {
-    if (this.option('disabled')) {
-      return true;
-    }
-
-    if ($item.hasClass('dx-state-disabled')) {
-      return true;
-    }
-
-    const $widget = $item.find('.dx-widget').first();
-    if ($widget.length && $widget.hasClass('dx-state-disabled')) {
-      return true;
-    }
-
-    return false;
-  }
-
   _getAvailableItems($itemElements?: dxElementWrapper): dxElementWrapper {
     const $visible = this._getVisibleItems($itemElements);
+    const widgetDisabled = !!this.option('disabled');
     const elements = Array.from($visible.toArray()).filter(
-      (item) => !this._isItemDisabled($(item)) && !!getItemFocusTarget($(item))?.length,
+      (item) => !isItemDisabled($(item), widgetDisabled) && !!getItemFocusTarget($(item))?.length,
     );
 
     return $(elements) as unknown as dxElementWrapper;
@@ -364,80 +274,12 @@ class ToolbarBase<
     this._updateRovingTabIndex($target);
   }
 
-  _getItemTabIndex($item: dxElementWrapper): number {
-    const itemData = this._getItemData($item);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return (itemData as Item)?.options?.tabIndex ?? 0;
+  _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
+    this._navigator?.updateRovingTabIndex($activeItem);
   }
 
-  _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    if (!this.option('focusStateEnabled')) {
-      return;
-    }
-
-    const $allItems = this._itemContainer().find(`${this._itemSelector()}, .dx-dropdownmenu-button`);
-    const $available = this._getAvailableItems();
-    let hasActive = false;
-
-    $allItems.each((_index: number, item: Element): boolean => {
-      const $item = $(item);
-      const $focusTarget = getItemFocusTarget($item);
-
-      if (!$focusTarget?.length) {
-        return true;
-      }
-
-      if (!$item.is(':visible') || this._isItemDisabled($item)) {
-        $focusTarget.attr('tabIndex', -1);
-        const $input = $focusTarget.hasClass('dx-texteditor')
-          ? $focusTarget.find('.dx-texteditor-input')
-          : undefined;
-        if ($input?.length) {
-          $input.attr('tabIndex', -1);
-        }
-        return true;
-      }
-
-      const isActive = !!$activeItem?.length && $item.get(0) === $activeItem.get(0);
-      const activeTabIndex = this._getItemTabIndex($item);
-      const tabIndexValue = isActive ? activeTabIndex : -1;
-      $focusTarget.attr('tabIndex', tabIndexValue);
-      if (isActive) {
-        hasActive = true;
-      }
-
-      const $input = $focusTarget.hasClass('dx-texteditor')
-        ? $focusTarget.find('.dx-texteditor-input')
-        : undefined;
-
-      if ($input?.length) {
-        $input.attr('tabIndex', -1);
-      }
-
-      const $menu = $item.find('.dx-menu');
-      if ($menu.length) {
-        $menu.attr('tabIndex', -1);
-        $menu.find('[tabindex]').attr('tabIndex', -1);
-      }
-
-      return true;
-    });
-
-    if (!hasActive) {
-      const $first = $available.first();
-      if ($first.length) {
-        const $firstTarget = getItemFocusTarget($first);
-        const firstTabIndex = this._getItemTabIndex($first);
-        $firstTarget?.attr('tabIndex', firstTabIndex);
-
-        const $firstInput = $firstTarget?.hasClass('dx-texteditor')
-          ? $firstTarget.find('.dx-texteditor-input')
-          : undefined;
-        if ($firstInput?.length) {
-          $firstInput.attr('tabIndex', -1);
-        }
-      }
-    }
+  _resetRovingTabIndex(): void {
+    this._navigator?.resetRovingTabIndex(this._itemContainer());
   }
 
   _focusInHandler(e: DxEvent): void {
@@ -471,6 +313,10 @@ class ToolbarBase<
   }
 
   _focusItemWidget($item: dxElementWrapper): void {
+    if (this._navigator) {
+      this._navigator.focusItemWidget($item);
+      return;
+    }
     const $focusTarget = getItemFocusTarget($item);
     if (!$focusTarget?.length) {
       return;
@@ -497,7 +343,7 @@ class ToolbarBase<
     if ($menu.length) {
       e.preventDefault();
       e.stopPropagation();
-      this._activateMenu($menu);
+      activateMenu($menu);
     }
   }
 
@@ -512,33 +358,6 @@ class ToolbarBase<
     e.preventDefault();
     e.stopPropagation();
     this._openOverflowMenu(e.key === 'ArrowUp' ? 'last' : 'first');
-  }
-
-  _closeOpenSubmenu(target: HTMLElement, e: Event): boolean {
-    const $menu = $(target).closest('.dx-menu');
-    if (!$menu.length) {
-      return false;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const menuInstance = $menu.data('dxMenu') as any;
-    if (!menuInstance?._visibleSubmenu) {
-      return false;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const $anchor = $menu.find('.dx-menu-item-expanded').first();
-    menuInstance._hideSubmenu(menuInstance._visibleSubmenu);
-
-    if ($anchor.length) {
-      menuInstance.option('focusedElement', getPublicElement($anchor));
-    }
-    return true;
-  }
-
-  _activateMenu($menu: dxElementWrapper): void {
-    ($menu.get(0) as HTMLElement).focus();
   }
 
   _focusOutHandler(e: DxEvent): void {
@@ -562,6 +381,10 @@ class ToolbarBase<
 
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _moveFocus(location: string, e?: DxEvent<KeyboardEvent>): boolean | undefined | void {
+    if (!this.option('focusStateEnabled')) {
+      return super._moveFocus(location, e);
+    }
+
     const { focusedElement: prevFocusedElement } = this.option();
     const $prev = $(prevFocusedElement);
     if ($prev.length) {
@@ -625,12 +448,7 @@ class ToolbarBase<
   }
 
   _updateFocusableItemsTabIndex(): void {
-    if (!this.option('focusStateEnabled')) {
-      return;
-    }
-
-    const { focusedElement } = this.option();
-    this._updateRovingTabIndex($(focusedElement));
+    this._resetRovingTabIndex();
   }
 
   _renderToolbar(): void {

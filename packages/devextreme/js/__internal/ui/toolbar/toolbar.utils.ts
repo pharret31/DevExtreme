@@ -1,6 +1,7 @@
 import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
 import type { Item } from '@js/ui/toolbar';
+import { getPublicElement } from '@ts/core/m_element';
 import type Widget from '@ts/core/widget/widget';
 import type { ListBase } from '@ts/ui/list/list.base';
 
@@ -10,6 +11,44 @@ const BUTTON_GROUP_CLASS = 'dx-buttongroup';
 const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
 const TOOLBAR_ITEMS = ['dxAutocomplete', 'dxButton', 'dxCheckBox', 'dxDateBox', 'dxDateRangeBox', 'dxMenu', 'dxSelectBox', 'dxSwitch', 'dxTabs', 'dxTextBox', 'dxButtonGroup', 'dxDropDownButton'];
 const NATIVE_FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function isTextInputTarget(target: HTMLElement): boolean {
+  const tagName = target.tagName.toLowerCase();
+
+  return (tagName === 'input' || tagName === 'textarea')
+    && $(target).closest('.dx-texteditor').length > 0;
+}
+
+export function isMenuTarget(target: HTMLElement): boolean {
+  return $(target).closest('.dx-menu, .dx-menu-item').length > 0;
+}
+
+export function activateMenu($menu: dxElementWrapper): void {
+  ($menu.get(0) as HTMLElement).focus();
+}
+
+export function closeOpenSubmenu(target: HTMLElement, e: Event): boolean {
+  const $menu = $(target).closest('.dx-menu');
+  if (!$menu.length) {
+    return false;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const menuInstance = $menu.data('dxMenu') as any;
+  if (!menuInstance?._visibleSubmenu) {
+    return false;
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const $anchor = $menu.find('.dx-menu-item-expanded').first();
+  menuInstance._hideSubmenu(menuInstance._visibleSubmenu);
+
+  if ($anchor.length) {
+    menuInstance.option('focusedElement', getPublicElement($anchor));
+  }
+  return true;
+}
 
 const getItemInstance = ($element: dxElementWrapper): Widget => {
   // @ts-expect-error ts-error
@@ -50,6 +89,17 @@ export function closeItemWidget($item: dxElementWrapper): boolean {
   return false;
 }
 
+export function isItemDisabled($item: dxElementWrapper, widgetDisabled: boolean): boolean {
+  if (widgetDisabled) {
+    return true;
+  }
+  if ($item.hasClass('dx-state-disabled')) {
+    return true;
+  }
+  const $widget = $item.find('.dx-widget').first();
+  return $widget.length > 0 && $widget.hasClass('dx-state-disabled');
+}
+
 export function isItemWidgetOpened($item: dxElementWrapper): boolean {
   const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
 
@@ -86,20 +136,31 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
     return undefined;
   }
 
-  let $focusTarget = itemInstance._focusTarget?.();
-
+  const $base = itemInstance._focusTarget?.();
   const widgetName = getWidgetName($widget);
-  if (widgetName.toLowerCase().includes('dropdownbutton')) {
-    $focusTarget = $focusTarget?.find(`.${BUTTON_GROUP_CLASS}`);
-  } else if ($widget.hasClass('dx-menu')) {
-    $focusTarget = $item;
-  } else if ($widget.hasClass('dx-texteditor')) {
-    $focusTarget = $(itemInstance.element());
-  } else {
-    $focusTarget = $focusTarget ?? $(itemInstance.element());
+
+  if (widgetName === 'dxDropDownButton') return $base?.find(`.${BUTTON_GROUP_CLASS}`);
+  if ($widget.hasClass('dx-menu')) return $item;
+  if ($widget.hasClass('dx-texteditor')) return $(itemInstance.element());
+  return $base ?? $(itemInstance.element());
+}
+
+export function applyItemTabIndex($item: dxElementWrapper, tabIndex: number): void {
+  const $focusTarget = getItemFocusTarget($item);
+  if (!$focusTarget?.length) {
+    return;
+  }
+  $focusTarget.attr('tabIndex', tabIndex);
+
+  if ($focusTarget.hasClass('dx-texteditor')) {
+    $focusTarget.find('.dx-texteditor-input').attr('tabIndex', -1);
   }
 
-  return $focusTarget;
+  const $menu = $item.find('.dx-menu');
+  if ($menu.length) {
+    $menu.attr('tabIndex', -1);
+    $menu.find('[tabindex]').attr('tabIndex', -1);
+  }
 }
 
 export function setItemWidgetFocusState($item: dxElementWrapper, isFocused: boolean): void {

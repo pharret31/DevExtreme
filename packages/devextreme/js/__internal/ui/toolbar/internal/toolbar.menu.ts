@@ -513,8 +513,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
   _updateFocusableItemsTabIndex(): void {
     if (this._list) {
       if (this.option('listFocusStateEnabled')) {
-        const { focusedElement } = this._list.option();
-        this._list._updateRovingTabIndex($(focusedElement));
+        this._list._resetRovingTabIndex();
       } else {
         const { items = [] } = this.option();
         items.forEach((item) => toggleItemFocusableElementTabIndex(this._list, item));
