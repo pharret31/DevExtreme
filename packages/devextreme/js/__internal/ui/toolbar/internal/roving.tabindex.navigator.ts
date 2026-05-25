@@ -3,6 +3,7 @@ import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
 import type { DxEvent } from '@js/events';
 import type { Item } from '@js/ui/toolbar';
+import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor';
 
 import {
   applyItemTabIndex,
@@ -30,11 +31,21 @@ const VERTICAL_KEY_LOCATION: Record<string, string> = {
   End: 'last',
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type HostWidget = any;
+interface HostComponent {
+  $element: () => dxElementWrapper;
+  _keyboardEventBindingTarget: () => dxElementWrapper;
+  _keyboardHandler: (opts: KeyboardKeyDownEvent) => boolean;
+  option: () => {
+    focusedElement?: Element | dxElementWrapper | null;
+    focusStateEnabled?: boolean;
+  };
+  _moveFocus: (location: string, e?: DxEvent<KeyboardEvent>) => void;
+  _getAvailableItems: ($itemElements?: dxElementWrapper) => dxElementWrapper;
+  _getItemData: ($item: dxElementWrapper) => Item;
+}
 
 export interface RovingTabIndexNavigatorConfig {
-  widget: HostWidget;
+  component: HostComponent;
   itemsSelector: string;
   direction: Direction;
   getItemFocusTarget?: ($item: dxElementWrapper) => dxElementWrapper | undefined;
@@ -47,7 +58,7 @@ export class RovingTabIndexNavigator {
 
   private keyboardListenerId?: string;
 
-  private captureHandler?: EventListener;
+  private captureHandler?: (e: KeyboardEvent) => void;
 
   private $prevActiveItem?: dxElementWrapper;
 
@@ -58,13 +69,12 @@ export class RovingTabIndexNavigator {
   attach(): void {
     this.detach();
 
-    const { widget } = this.config;
+    const { component } = this.config;
 
     this.keyboardListenerId = keyboard.on(
-      widget._keyboardEventBindingTarget(),
+      component._keyboardEventBindingTarget(),
       null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (opts: any) => widget._keyboardHandler(opts),
+      (opts: KeyboardKeyDownEvent) => component._keyboardHandler(opts),
     );
 
     this.attachCaptureHandler();
@@ -92,11 +102,13 @@ export class RovingTabIndexNavigator {
   }
 
   private attachCaptureHandler(): void {
-    const element = this.config.widget.$element().get(0) as HTMLElement;
+    const element = this.config.component.$element().get(0) as HTMLElement;
 
-    this.captureHandler = (evt: Event): void => {
-      const e = evt as KeyboardEvent;
-      const target = e.target as HTMLElement;
+    this.captureHandler = (e: KeyboardEvent): void => {
+      const { target } = e;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
 
       const isTextInput = isTextInputTarget(target);
       const isMenu = isMenuTarget(target);
@@ -130,7 +142,7 @@ export class RovingTabIndexNavigator {
         return;
       }
 
-      const { focusedElement } = this.config.widget.option();
+      const { focusedElement } = this.config.component.option();
       const $focused = $(focusedElement);
       if ($focused.length && isItemWidgetOpened($focused)) {
         return;
@@ -142,13 +154,13 @@ export class RovingTabIndexNavigator {
       this.moveFocus(location);
     };
 
-    element.addEventListener('keydown', this.captureHandler, true);
+    element.addEventListener('keydown', this.captureHandler as EventListener, true);
   }
 
   private detachCaptureHandler(): void {
     if (this.captureHandler) {
-      const element = this.config.widget.$element().get(0) as HTMLElement;
-      element.removeEventListener('keydown', this.captureHandler, true);
+      const element = this.config.component.$element().get(0) as HTMLElement;
+      element.removeEventListener('keydown', this.captureHandler as EventListener, true);
       this.captureHandler = undefined;
     }
   }
@@ -172,7 +184,7 @@ export class RovingTabIndexNavigator {
   }
 
   moveFocus(location: string, e?: DxEvent<KeyboardEvent>): void {
-    this.config.widget._moveFocus(location, e);
+    this.config.component._moveFocus(location, e);
   }
 
   focusItemWidget($item: dxElementWrapper): void {
@@ -184,26 +196,26 @@ export class RovingTabIndexNavigator {
   }
 
   getAvailableItems($itemElements?: dxElementWrapper): dxElementWrapper {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.config.widget._getAvailableItems($itemElements);
+    return this.config.component._getAvailableItems($itemElements);
   }
 
   getItemTabIndex($item: dxElementWrapper): number {
-    const itemData = this.config.widget._getItemData($item);
+    const itemData = this.config.component._getItemData($item);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return (itemData as Item)?.options?.tabIndex ?? 0;
+    return itemData?.options?.tabIndex ?? 0;
   }
 
   updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    if (!this.config.widget.option('focusStateEnabled')) {
+    if (!this.config.component.option().focusStateEnabled) {
       return;
     }
 
-    const prev = this.$prevActiveItem?.get(0);
+    const $prev = this.$prevActiveItem;
+    const prev = $prev?.get(0);
     const next = $activeItem?.get(0);
 
-    if (prev && prev !== next && prev.isConnected) {
-      applyItemTabIndex(this.$prevActiveItem as dxElementWrapper, -1);
+    if ($prev && prev && prev !== next && prev.isConnected) {
+      applyItemTabIndex($prev, -1);
     }
 
     if ($activeItem?.length) {
@@ -222,7 +234,7 @@ export class RovingTabIndexNavigator {
   }
 
   resetRovingTabIndex(itemsContainer: dxElementWrapper): void {
-    if (!this.config.widget.option('focusStateEnabled')) {
+    if (!this.config.component.option().focusStateEnabled) {
       return;
     }
 
@@ -234,7 +246,7 @@ export class RovingTabIndexNavigator {
 
     this.$prevActiveItem = undefined;
 
-    const { focusedElement } = this.config.widget.option();
+    const { focusedElement } = this.config.component.option();
     const $focused = $(focusedElement);
     const $available = this.getAvailableItems();
     const focusedEl = $focused.get(0);

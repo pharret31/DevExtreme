@@ -210,7 +210,7 @@ export default class ToolbarMenuList extends ListBase {
     }
 
     this._navigator = new RovingTabIndexNavigator({
-      widget: this,
+      component: this,
       itemsSelector: this._itemSelector(),
       direction: 'vertical',
       getItemFocusTarget: ($item): dxElementWrapper => this._getItemFocusTarget($item),

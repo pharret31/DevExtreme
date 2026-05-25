@@ -4083,7 +4083,7 @@ QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
 
     const getOverflowBtn = ($el) => $el.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
 
-    QUnit.test('overflow button gets dx-state-focused when focused via keyboard', function(assert) {
+    QUnit.test('overflow button is focused when navigated to via keyboard', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
         const $overflowBtn = getOverflowBtn(this.$element);
 
@@ -4091,11 +4091,11 @@ QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
         toolbar._focusItemWidget($overflowBtn);
         this.clock.tick(0);
 
-        assert.ok($overflowBtn.hasClass('dx-state-focused'),
-            'overflow button has dx-state-focused');
+        assert.strictEqual(document.activeElement, $overflowBtn.get(0),
+            'overflow button is the active element');
     });
 
-    QUnit.test('overflow button retains dx-state-focused after Escape closes popup', function(assert) {
+    QUnit.test('overflow button retains focus after Escape closes popup', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
         const $overflowBtn = getOverflowBtn(this.$element);
         const menu = toolbar._layoutStrategy._menu;
@@ -4114,11 +4114,11 @@ QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
         this.clock.tick(0);
 
         assert.notOk(menu.option('opened'), 'popup closed after Escape');
-        assert.ok($overflowBtn.hasClass('dx-state-focused'),
-            'overflow button retains dx-state-focused after popup closes');
+        assert.strictEqual(document.activeElement, $overflowBtn.get(0),
+            'overflow button retains focus after popup closes');
     });
 
-    QUnit.test('ArrowRight from visible button navigates to overflow button with dx-state-focused', function(assert) {
+    QUnit.test('ArrowRight from visible button navigates focus to overflow button', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
         const $overflowBtn = getOverflowBtn(this.$element);
@@ -4132,8 +4132,8 @@ QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
 
         assert.strictEqual($(toolbar.option('focusedElement')).get(0), $overflowBtn.get(0),
             'focusedElement is the overflow button');
-        assert.ok($overflowBtn.hasClass('dx-state-focused'),
-            'overflow button has dx-state-focused after navigation');
+        assert.strictEqual(document.activeElement, $overflowBtn.get(0),
+            'overflow button is focused after navigation');
     });
 
     QUnit.test('previous button loses dx-state-focused when focus moves to overflow button', function(assert) {
@@ -4456,17 +4456,21 @@ QUnit.module('focusStateEnabled — runtime toggle', moduleConfig, function() {
         assertFocusedItemAt(assert, toolbar, 1, 'navigation works again after re-enabling');
     });
 
-    QUnit.test('toggling to false clears dx-state-focused on the active widget', function(assert) {
+    QUnit.test('toolbar item containers never get dx-state-focused regardless of focusStateEnabled', function(assert) {
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B')]);
         focusItemAt(toolbar, 0);
         this.clock.tick(0);
 
+        assert.strictEqual(this.$element.find('.dx-toolbar-item.dx-state-focused').length, 0,
+            'item container has no dx-state-focused while focused');
+        assert.strictEqual(this.$element.filter('.dx-state-focused').length, 0,
+            'toolbar root has no dx-state-focused while focused');
+
         toolbar.option('focusStateEnabled', false);
         this.clock.tick(0);
 
-        const $focused = this.$element.find('.dx-state-focused');
-        assert.strictEqual($focused.length, 0,
-            'no dx-state-focused after focusStateEnabled becomes false');
+        assert.strictEqual(this.$element.find('.dx-toolbar-item.dx-state-focused').length, 0,
+            'item container still has no dx-state-focused after focusStateEnabled becomes false');
     });
 });
 
@@ -4584,19 +4588,20 @@ QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleCo
         assert.strictEqual(keys.end, undefined, 'end removed');
     });
 
-    QUnit.test('onKeyboardHandled fires on arrow key when focusStateEnabled:false (super attachment preserved)', function(assert) {
-        const calls = [];
+    QUnit.test('ArrowRight delegates to base CollectionWidget when focusStateEnabled:false (super attachment preserved)', function(assert) {
         const toolbar = this.$element.dxToolbar({
             focusStateEnabled: false,
-            onKeyboardHandled: (opts) => { calls.push(opts.keyName); },
             items: [buttonItem('A'), buttonItem('B')],
         }).dxToolbar('instance');
 
-        const focusTarget = toolbar._focusTarget().get(0);
-        dispatchKeydown(focusTarget, 'ArrowRight');
+        const $items = toolbar._getAvailableItems();
+        toolbar.option('focusedElement', $items.eq(0).get(0));
 
-        assert.ok(calls.length > 0, 'onKeyboardHandled was invoked at least once');
-        assert.strictEqual(calls[0], 'rightArrow', 'callback received the rightArrow key');
+        dispatchKeydown($items.eq(0).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
+            'ArrowRight moves focus via base CollectionWidget handler (super attachment preserved)');
     });
 
     QUnit.test('navigator is not created at focusStateEnabled:false', function(assert) {

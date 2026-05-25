@@ -652,7 +652,7 @@ QUnit.module('widget sizing render', moduleConfig, () => {
             beforeEach: function() {
                 this.instance.option({
                     opened: false,
-                    focusStateEnabled: false,
+                    listFocusStateEnabled: false,
                     items: [{ template: () => $('<div>').dxCheckBox({ value: false }) }],
                 });
             },

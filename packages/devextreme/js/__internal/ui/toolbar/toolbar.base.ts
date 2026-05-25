@@ -1,5 +1,6 @@
 import type { DefaultOptionsRule } from '@js/common';
 import { fx } from '@js/common/core/animation';
+import { keyboard } from '@js/common/core/events/short';
 import registerComponent from '@js/core/component_registrator';
 import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
@@ -19,6 +20,7 @@ import type { Item, Properties } from '@js/ui/toolbar';
 import { getPublicElement } from '@ts/core/m_element';
 import type { OptionChanged } from '@ts/core/widget/types';
 import type { SupportedKeys } from '@ts/core/widget/widget';
+import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor';
 import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
@@ -171,6 +173,12 @@ class ToolbarBase<
     return this.$element();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _toggleFocusClass(_isFocused: boolean, _$element?: dxElementWrapper): void {
+    // Intentionally empty: focus visual is managed via :focus-visible on inner elements,
+    // not by dx-state-focused on the toolbar root or item containers.
+  }
+
   _supportedKeys(): SupportedKeys {
     const keys = super._supportedKeys();
 
@@ -220,19 +228,31 @@ class ToolbarBase<
   }
 
   _renderFocusTarget(): void {
-    this._focusTarget().attr('tabIndex', -1);
+    this._focusTarget().removeAttr('tabIndex');
+  }
+
+  _refreshActiveDescendant(): void {
+    // roving tabIndex: real DOM focus moves to items, aria-activedescendant not needed
+  }
+
+  _refreshItemId(): void {
+    // roving tabIndex: no synthetic id needed for aria-activedescendant
   }
 
   _attachKeyboardEvents(): void {
     this._detachKeyboardEvents();
 
     if (!this.option('focusStateEnabled')) {
-      super._attachKeyboardEvents();
+      this._keyboardListenerId = keyboard.on(
+        this._keyboardEventBindingTarget(),
+        null,
+        (opts: KeyboardKeyDownEvent) => this._keyboardHandler(opts),
+      );
       return;
     }
 
     this._navigator = new RovingTabIndexNavigator({
-      widget: this,
+      component: this,
       itemsSelector: `${this._itemSelector()}, .dx-dropdownmenu-button`,
       direction: 'horizontal',
     });
@@ -283,32 +303,11 @@ class ToolbarBase<
   }
 
   _focusInHandler(e: DxEvent): void {
-    if (this._isFocusTarget(e.target)) {
-      const { focusedElement } = this.option();
-      const $focused = $(focusedElement);
+    const $target = $(e.target);
+    const $item = $target.closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
 
-      if ($focused.length && isItemWidgetOpened($focused)) {
-        return;
-      }
-
-      super._focusInHandler(e);
-
-      if ($focused.length) {
-        this._focusItemWidget($focused);
-      } else {
-        const $firstItem = this._getAvailableItems().first();
-        if ($firstItem.length) {
-          this.option('focusedElement', getPublicElement($firstItem));
-          this._focusItemWidget($firstItem);
-        }
-      }
-    } else {
-      const $target = $(e.target);
-      const $item = $target.closest(`${this._itemSelector()}, .dx-dropdownmenu-button`);
-
-      if ($item.length && getItemFocusTarget($item)?.length) {
-        this.option('focusedElement', getPublicElement($item));
-      }
+    if ($item.length && getItemFocusTarget($item)?.length) {
+      this.option('focusedElement', getPublicElement($item));
     }
   }
 
@@ -382,7 +381,8 @@ class ToolbarBase<
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _moveFocus(location: string, e?: DxEvent<KeyboardEvent>): boolean | undefined | void {
     if (!this.option('focusStateEnabled')) {
-      return super._moveFocus(location, e);
+      const { focusedElement } = this.option();
+      return focusedElement ? super._moveFocus(location, e) : undefined;
     }
 
     const { focusedElement: prevFocusedElement } = this.option();
@@ -763,6 +763,9 @@ class ToolbarBase<
         break;
       case 'focusStateEnabled':
         this.$element().toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!value);
+        if (!value) {
+          this.option('focusedElement', null);
+        }
         super._optionChanged(args);
         break;
       case 'grouped':
