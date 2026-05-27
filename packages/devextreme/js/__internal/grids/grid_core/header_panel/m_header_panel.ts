@@ -133,7 +133,7 @@ export class HeaderPanel extends ColumnsView {
     const options: { toolbarOptions: ToolbarProperties<DefaultToolbarItem | ToolbarItem> } = {
       toolbarOptions: {
         items: sortedToolbarItems,
-        focusStateEnabled: false,
+        focusStateEnabled: true,
         visible: userToolbarOptions?.visible,
         disabled: userToolbarOptions?.disabled,
         onItemRendered(e) {

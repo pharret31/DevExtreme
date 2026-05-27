@@ -2432,6 +2432,70 @@ QUnit.module('Template items', moduleConfig, function() {
         assert.strictEqual($(focusedElement).get(0), $itemC.get(0), 'ArrowRight from template item moves focus to C');
     });
 
+    QUnit.test('template item with [tabindex] div (not native button) is in roving tabindex sequence', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div tabindex="0">').text('Group item') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 3, 'Template item with [tabindex] div is in navigation sequence');
+    });
+
+    QUnit.test('ArrowRight navigates to template item with [tabindex] div content', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
+                { locateInMenu: 'never', template: () => $('<div tabindex="0" class="tmpl-div">').text('Group item') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'C' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $itemA = $allItems.eq(0);
+        const $templateItem = $allItems.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($itemA).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($itemA).get(0), 'ArrowRight');
+        this.clock.tick(0);
+
+        const { focusedElement } = toolbar.option();
+        assert.strictEqual($(focusedElement).get(0), $templateItem.get(0), 'focusedElement is the template item container');
+
+        const $focusTarget = getItemFocusTarget($templateItem);
+        assert.strictEqual(parseInt($focusTarget.attr('tabindex'), 10), 0, 'Template div has tabindex=0');
+    });
+
+    QUnit.test('navigation round-trip: leave and return to [tabindex] div template item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [
+                { locateInMenu: 'never', template: () => $('<div tabindex="0" class="tmpl-div">').text('Group item') },
+                { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
+            ],
+        }).dxToolbar('instance');
+
+        const $allItems = this.$element.find(`.${TOOLBAR_ITEM_CLASS}`);
+        const $templateItem = $allItems.eq(0);
+        const $itemB = $allItems.eq(1);
+
+        this.$element.trigger($.Event('focusin', { target: getItemFocusTarget($templateItem).get(0) }));
+        this.clock.tick(0);
+
+        dispatchKeydown(getItemFocusTarget($templateItem).get(0), 'ArrowRight');
+        this.clock.tick(0);
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $itemB.get(0), 'moved to B');
+
+        dispatchKeydown(getItemFocusTarget($itemB).get(0), 'ArrowLeft');
+        this.clock.tick(0);
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $templateItem.get(0), 'returned to template item');
+        assert.strictEqual(parseInt(getItemFocusTarget($templateItem).attr('tabindex'), 10), 0, 'template div tabindex restored to 0');
+    });
+
     QUnit.skip('Enter on template container: _insideActiveItem===true; focus moves to first focusable', function(assert) {
         this.$element.dxToolbar({
             items: [
