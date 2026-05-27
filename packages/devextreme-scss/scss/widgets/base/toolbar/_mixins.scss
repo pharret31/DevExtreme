@@ -15,24 +15,4 @@
       border-radius: $border-radius;
     }
   }
-
-  .dx-dropdownmenu-popup-wrapper.dx-toolbar-focus-state-enabled {
-    .dx-dropdownmenu-list {
-      .dx-list-item:has([tabindex="0"]:focus-visible) {
-        outline: 2px solid $accent-color;
-        outline-offset: 1px;
-        border-radius: $border-radius;
-      }
-
-      .dx-list-item[tabindex="0"]:focus-visible {
-        outline: 2px solid $accent-color;
-        outline-offset: 1px;
-        border-radius: $border-radius;
-      }
-    }
-  }
-
-  .dx-dropdownmenu-popup-wrapper .dx-toolbar-menu-section {
-    margin-inline: 4px;
-  }
 }
