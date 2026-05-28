@@ -158,7 +158,7 @@ class Toolbar extends ToolbarBase<Properties> {
     if (property === 'disabled' || property === 'options.disabled') {
       if (this._isMenuItem(item)) {
         toggleItemFocusableElementTabIndex(this, item);
-      } else if (this.option('focusStateEnabled')) {
+      } else if (this.option('allowKeyboardNavigation')) {
         this._resetRovingTabIndex();
       } else {
         toggleItemFocusableElementTabIndex(this, item);
@@ -184,7 +184,7 @@ class Toolbar extends ToolbarBase<Properties> {
 
     menuItems.forEach((item) => toggleItemFocusableElementTabIndex(this, item));
 
-    if (this.option('focusStateEnabled')) {
+    if (this.option('allowKeyboardNavigation')) {
       this._resetRovingTabIndex();
     } else {
       toolbarItems.forEach((item) => toggleItemFocusableElementTabIndex(this, item));
@@ -212,7 +212,7 @@ class Toolbar extends ToolbarBase<Properties> {
       case 'multiline':
         this._invalidate();
         break;
-      case 'focusStateEnabled':
+      case 'allowKeyboardNavigation':
       case 'disabled':
         super._optionChanged(args);
 
