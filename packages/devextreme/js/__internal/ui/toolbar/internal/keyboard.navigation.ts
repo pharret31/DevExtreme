@@ -43,6 +43,7 @@ export interface RovingTabIndexNavigatorConfig {
   getItemFocusTarget?: ($item: dxElementWrapper) => dxElementWrapper | undefined;
   onTabKey?: () => void;
   onEscapeKey?: () => void;
+  isEnabled?: () => boolean;
 }
 
 export class RovingTabIndexNavigator {
@@ -211,7 +212,9 @@ export class RovingTabIndexNavigator {
   }
 
   updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    if (!this.config.component.option().focusStateEnabled) {
+    const { isEnabled } = this.config;
+    const enabled = isEnabled?.() ?? false;
+    if (!enabled) {
       return;
     }
 
@@ -239,7 +242,9 @@ export class RovingTabIndexNavigator {
   }
 
   resetRovingTabIndex(itemsContainer: dxElementWrapper): void {
-    if (!this.config.component.option().focusStateEnabled) {
+    const { isEnabled } = this.config;
+    const enabled = isEnabled?.() ?? false;
+    if (!enabled) {
       return;
     }
 

@@ -195,6 +195,7 @@ export default class ToolbarMenuList extends ListBase {
       getItemFocusTarget: ($item): dxElementWrapper => this._getItemFocusTarget($item),
       onEscapeKey: (): void => this._onEscapePress?.(),
       onTabKey: (): void => this._onTabPress?.(),
+      isEnabled: (): boolean => !!this.option('focusStateEnabled'),
     });
     this._navigator.attach();
   }

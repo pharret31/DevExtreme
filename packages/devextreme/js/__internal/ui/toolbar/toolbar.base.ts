@@ -23,7 +23,7 @@ import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor'
 import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
-import { TOOLBAR_CLASS, TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from './constants';
+import { TOOLBAR_CLASS, TOOLBAR_FOCUS_MODE_CLASS } from './constants';
 import {
   enterKeyHandler,
   focusItemWidget,
@@ -66,6 +66,7 @@ export interface ToolbarBaseProperties<
     CollectionWidgetBaseProperties<ToolbarBase, TItem, TKey>,
   keyof Properties<TItem, TKey> & keyof CollectionWidgetBaseProperties<ToolbarBase, TItem, TKey>
   > {
+  allowKeyboardNavigation: boolean;
   grouped: boolean;
   renderAs: 'topToolbar';
   useFlatButtons: boolean;
@@ -153,6 +154,7 @@ class ToolbarBase<
       useFlatButtons: false,
       useDefaultButtons: false,
       focusStateEnabled: true,
+      allowKeyboardNavigation: true,
       loopItemFocus: true,
     };
   }
@@ -184,7 +186,7 @@ class ToolbarBase<
   _supportedKeys(): SupportedKeys {
     const keys = super._supportedKeys();
 
-    if (!this.option('focusStateEnabled')) {
+    if (!this.option('allowKeyboardNavigation')) {
       return keys;
     }
 
@@ -244,7 +246,7 @@ class ToolbarBase<
   _attachKeyboardEvents(): void {
     this._detachKeyboardEvents();
 
-    if (!this.option('focusStateEnabled')) {
+    if (!this.option('allowKeyboardNavigation')) {
       this._keyboardListenerId = keyboard.on(
         this._keyboardEventBindingTarget(),
         null,
@@ -257,6 +259,7 @@ class ToolbarBase<
       component: this._getContext(),
       itemsSelector: `${this._itemSelector()}, .dx-dropdownmenu-button`,
       direction: 'horizontal',
+      isEnabled: (): boolean => !!this.option('allowKeyboardNavigation'),
     });
     this._navigator.attach();
   }
@@ -328,7 +331,7 @@ class ToolbarBase<
 
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _moveFocus(location: string, e?: DxEvent<KeyboardEvent>): boolean | undefined | void {
-    if (!this.option('focusStateEnabled')) {
+    if (!this.option('allowKeyboardNavigation')) {
       const { focusedElement } = this.option();
       return focusedElement ? super._moveFocus(location, e) : undefined;
     }
@@ -400,10 +403,10 @@ class ToolbarBase<
   }
 
   _renderToolbar(): void {
-    const { focusStateEnabled } = this.option();
+    const { allowKeyboardNavigation } = this.option();
     this.$element()
       .addClass(TOOLBAR_CLASS)
-      .toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!focusStateEnabled);
+      .toggleClass(TOOLBAR_FOCUS_MODE_CLASS, !!allowKeyboardNavigation);
 
     this._$toolbarItemsContainer = $('<div>')
       .addClass(TOOLBAR_ITEMS_CONTAINER_CLASS)
@@ -711,12 +714,13 @@ class ToolbarBase<
       case 'compactMode':
         this._applyCompactMode();
         break;
-      case 'focusStateEnabled':
-        this.$element().toggleClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS, !!value);
+      case 'allowKeyboardNavigation':
+        this.$element().toggleClass(TOOLBAR_FOCUS_MODE_CLASS, !!value);
         if (!value) {
           this.option('focusedElement', null);
         }
         super._optionChanged(args);
+        this._attachKeyboardEvents();
         break;
       case 'grouped':
         break;

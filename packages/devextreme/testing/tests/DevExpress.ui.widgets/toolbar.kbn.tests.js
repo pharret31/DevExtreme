@@ -5,7 +5,7 @@ import {
     DROP_DOWN_MENU_BUTTON_CLASS,
     DROP_DOWN_MENU_POPUP_WRAPPER_CLASS,
 } from '__internal/ui/toolbar/internal/toolbar.menu';
-import { TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from '__internal/ui/toolbar/constants';
+import { TOOLBAR_FOCUS_MODE_CLASS, DROPDOWNMENU_LIST_FOCUS_MODE_CLASS } from '__internal/ui/toolbar/constants';
 import { BUTTON_CLASS } from '__internal/ui/button/button';
 import { LIST_ITEM_CLASS } from '__internal/ui/list/list.base';
 import {
@@ -113,6 +113,8 @@ const findFocusTarget = ($item) => {
     if($menu.length) return $menu;
     const $native = $item.find('button:not([disabled]), input:not([disabled]), a[href], [tabindex]').first();
     if($native.length) return $native;
+    const $tabEl = $item.find('[tabindex]').first();
+    if($tabEl.length) return $tabEl;
     return $item;
 };
 
@@ -2138,12 +2140,12 @@ QUnit.module('Overflow menu', moduleConfig, function() {
             'item[2] has tabindex=-1 (never focused)');
     });
 
-    QUnit.test('mouse click on overflow button opens menu; first item is focused (focusStateEnabled=true)', function(assert) {
+    QUnit.test('mouse click on overflow button opens menu; first item is focused (allowKeyboardNavigation=true)', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
         const $overflowBtn = getOverflowBtn(this.$element);
         const menu = toolbar._layoutStrategy._menu;
 
-        assert.strictEqual(toolbar.option('focusStateEnabled'), true, 'focusStateEnabled is true (default)');
+        assert.strictEqual(toolbar.option('allowKeyboardNavigation'), true, 'allowKeyboardNavigation is true (default)');
 
         $overflowBtn.trigger('dxclick');
         this.clock.tick(0);
@@ -2994,9 +2996,9 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual($tabindex0.length, 0, 'No tabindex=0 elements in empty toolbar');
     });
 
-    QUnit.test('focusStateEnabled:false — no keyboard handling', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — no keyboard handling', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
@@ -3011,12 +3013,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         this.clock.tick(0);
 
         const focusAfter = toolbar.option('focusedElement');
-        assert.strictEqual(focusBefore, focusAfter, 'focusedElement unchanged when focusStateEnabled:false');
+        assert.strictEqual(focusBefore, focusAfter, 'focusedElement unchanged when allowKeyboardNavigation:false');
     });
 
-    QUnit.test('focusStateEnabled:false — roving tabindex is not applied', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — roving tabindex is not applied', function(assert) {
         this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
@@ -3028,12 +3030,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             el => $(el).attr('tabindex') === undefined || $(el).attr('tabindex') === '0',
         );
         assert.strictEqual(allHaveNaturalTabindex, true,
-            'buttons keep natural tabindex when focusStateEnabled:false');
+            'buttons keep natural tabindex when allowKeyboardNavigation:false');
     });
 
-    QUnit.test('focusStateEnabled:false propagates to overflow menu list but not to DropDownMenu itself', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false propagates to overflow menu list but not to DropDownMenu itself', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
@@ -3053,9 +3055,9 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'ToolbarMenuList gets focusStateEnabled:false via listFocusStateEnabled');
     });
 
-    QUnit.test('changing focusStateEnabled at runtime propagates listFocusStateEnabled to menu and list', function(assert) {
+    QUnit.test('changing allowKeyboardNavigation at runtime propagates listFocusStateEnabled to menu and list', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
@@ -3070,7 +3072,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual(menu.option('listFocusStateEnabled'), true, 'menu starts with listFocusStateEnabled:true');
         assert.strictEqual(menu._list.option('focusStateEnabled'), true, 'list starts with focusStateEnabled:true');
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
         assert.strictEqual(menu.option('focusStateEnabled'), true,
             'DropDownMenu keeps its own focusStateEnabled:true after runtime change');
@@ -3080,9 +3082,9 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'ToolbarMenuList gets focusStateEnabled:false after runtime change');
     });
 
-    QUnit.test('changing focusStateEnabled at runtime toggles keyboard navigation', function(assert) {
+    QUnit.test('changing allowKeyboardNavigation at runtime toggles keyboard navigation', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
@@ -3101,9 +3103,9 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         this.clock.tick(0);
 
         assert.strictEqual($(toolbar.option('focusedElement')).get(0), $secondItem,
-            'ArrowRight moves focus to second item when focusStateEnabled:true');
+            'ArrowRight moves focus to second item when allowKeyboardNavigation:true');
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
         const focusBefore = toolbar.option('focusedElement');
         dispatchKeydown($firstFocusTarget.get(0), 'ArrowRight');
@@ -3111,12 +3113,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const focusAfterDisabled = toolbar.option('focusedElement');
         assert.strictEqual(focusBefore, focusAfterDisabled,
-            'ArrowRight does not move focus after focusStateEnabled changed to false');
+            'ArrowRight does not move focus after allowKeyboardNavigation changed to false');
     });
 
-    QUnit.test('focusStateEnabled:true→false — items reset to natural tabindex (all 0)', function(assert) {
+    QUnit.test('allowKeyboardNavigation:true→false — items reset to natural tabindex (all 0)', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
@@ -3133,17 +3135,17 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual(tabIndicesBefore[0], '0', 'First item has tabindex=0 (roving)');
         assert.strictEqual(tabIndicesBefore[1], '-1', 'Second item has tabindex=-1 (roving)');
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
         const tabIndicesAfter = $items.toArray().map(item => getItemFocusTarget($(item)).attr('tabindex'));
-        assert.strictEqual(tabIndicesAfter[0], '0', 'First item has natural tabindex=0 after focusStateEnabled:false');
-        assert.strictEqual(tabIndicesAfter[1], '0', 'Second item has natural tabindex=0 after focusStateEnabled:false');
-        assert.strictEqual(tabIndicesAfter[2], '0', 'Third item has natural tabindex=0 after focusStateEnabled:false');
+        assert.strictEqual(tabIndicesAfter[0], '0', 'First item has natural tabindex=0 after allowKeyboardNavigation:false');
+        assert.strictEqual(tabIndicesAfter[1], '0', 'Second item has natural tabindex=0 after allowKeyboardNavigation:false');
+        assert.strictEqual(tabIndicesAfter[2], '0', 'Third item has natural tabindex=0 after allowKeyboardNavigation:false');
     });
 
-    QUnit.test('focusStateEnabled:false→true — roving tabindex is applied (only first item at 0)', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false→true — roving tabindex is applied (only first item at 0)', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'B' } },
@@ -3157,7 +3159,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual(tabIndicesBefore[0], '0', 'All items start at natural tabindex=0');
         assert.strictEqual(tabIndicesBefore[1], '0', 'All items start at natural tabindex=0');
 
-        toolbar.option('focusStateEnabled', true);
+        toolbar.option('allowKeyboardNavigation', true);
 
         const tabIndicesAfter = $items.toArray().map(item => getItemFocusTarget($(item)).attr('tabindex'));
         assert.strictEqual(tabIndicesAfter[0], '0', 'First item gets tabindex=0 from roving tabindex');
@@ -3165,9 +3167,9 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         assert.strictEqual(tabIndicesAfter[2], '-1', 'Third item gets tabindex=-1 from roving tabindex');
     });
 
-    QUnit.test('focusStateEnabled:false — overflow menu items use toggleItemFocusableElementTabIndex (not roving)', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — overflow menu items use toggleItemFocusableElementTabIndex (not roving)', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
@@ -3185,12 +3187,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             return $btn.length === 0 || $btn.attr('tabindex') === '0' || $btn.attr('tabindex') === undefined;
         });
         assert.strictEqual(allButtonsHaveTabindex, true,
-            'menu items use natural tabindex (toggleItemFocusableElementTabIndex) when focusStateEnabled:false');
+            'menu items use natural tabindex (toggleItemFocusableElementTabIndex) when allowKeyboardNavigation:false');
     });
 
-    QUnit.test('focusStateEnabled:false — opening overflow menu does not auto-focus items', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — opening overflow menu does not auto-focus items', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
@@ -3203,12 +3205,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const focusedElement = menu._list.option('focusedElement');
         assert.strictEqual(focusedElement, null,
-            'no item auto-focused on open when focusStateEnabled:false');
+            'no item auto-focused on open when allowKeyboardNavigation:false');
     });
 
-    QUnit.test('focusStateEnabled:true — overflow menu uses roving tabindex', function(assert) {
+    QUnit.test('allowKeyboardNavigation:true — overflow menu uses roving tabindex', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
@@ -3276,7 +3278,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'Tab keydown is not prevented by toolbar');
     });
 
-    QUnit.test('focusStateEnabled:true (default) — toolbar element has dx-toolbar-focus-state-enabled class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:true (default) — toolbar element has dx-toolbar-focus-mode class', function(assert) {
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -3284,56 +3286,56 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         });
 
         assert.ok(
-            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'toolbar has dx-toolbar-focus-state-enabled class when focusStateEnabled:true'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'toolbar has dx-toolbar-focus-mode class when allowKeyboardNavigation:true'
         );
     });
 
-    QUnit.test('focusStateEnabled:false — toolbar element does NOT have dx-toolbar-focus-state-enabled class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — toolbar element does NOT have dx-toolbar-focus-mode class', function(assert) {
         this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
             ],
         });
 
         assert.notOk(
-            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'toolbar does not have dx-toolbar-focus-state-enabled class when focusStateEnabled:false'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'toolbar does not have dx-toolbar-focus-mode class when allowKeyboardNavigation:false'
         );
     });
 
-    QUnit.test('changing focusStateEnabled at runtime toggles dx-toolbar-focus-state-enabled class', function(assert) {
+    QUnit.test('changing allowKeyboardNavigation at runtime toggles dx-toolbar-focus-mode class', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
             ],
         }).dxToolbar('instance');
 
         assert.ok(
-            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'class is present when focusStateEnabled:true'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'class is present when allowKeyboardNavigation:true'
         );
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
         assert.notOk(
-            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'class is removed after setting focusStateEnabled:false'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'class is removed after setting allowKeyboardNavigation:false'
         );
 
-        toolbar.option('focusStateEnabled', true);
+        toolbar.option('allowKeyboardNavigation', true);
 
         assert.ok(
-            this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'class is re-added after setting focusStateEnabled:true'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'class is re-added after setting allowKeyboardNavigation:true'
         );
     });
 
-    QUnit.test('focusStateEnabled:true — overflow popup wrapper has dx-toolbar-focus-state-enabled class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:true — overflow popup wrapper has dx-dropdownmenu-list-focus-mode class', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
             ],
@@ -3345,14 +3347,14 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
         assert.ok(
-            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'popup wrapper has dx-toolbar-focus-state-enabled class when focusStateEnabled:true'
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper has dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:true'
         );
     });
 
-    QUnit.test('focusStateEnabled:false — overflow popup wrapper does NOT have dx-toolbar-focus-state-enabled class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — overflow popup wrapper does NOT have dx-dropdownmenu-list-focus-mode class', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
             ],
@@ -3364,14 +3366,14 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
         assert.notOk(
-            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'popup wrapper does not have dx-toolbar-focus-state-enabled class when focusStateEnabled:false'
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper does not have dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:false'
         );
     });
 
-    QUnit.test('changing focusStateEnabled at runtime toggles dx-toolbar-focus-state-enabled on popup wrapper', function(assert) {
+    QUnit.test('changing allowKeyboardNavigation at runtime toggles dx-dropdownmenu-list-focus-mode on popup wrapper', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
             ],
@@ -3384,22 +3386,22 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
 
         assert.ok(
-            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'popup wrapper has class when focusStateEnabled:true'
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper has class when allowKeyboardNavigation:true'
         );
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
         assert.notOk(
-            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'popup wrapper loses class after setting focusStateEnabled:false'
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper loses class after setting allowKeyboardNavigation:false'
         );
 
-        toolbar.option('focusStateEnabled', true);
+        toolbar.option('allowKeyboardNavigation', true);
 
         assert.ok(
-            $wrapper.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'popup wrapper regains class after setting focusStateEnabled:true'
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper regains class after setting allowKeyboardNavigation:true'
         );
     });
 });
@@ -4513,18 +4515,18 @@ QUnit.module('Tab key — toolbar does not intercept', moduleConfig, function() 
     });
 });
 
-QUnit.module('focusStateEnabled — runtime toggle', moduleConfig, function() {
+QUnit.module('allowKeyboardNavigation — runtime toggle', moduleConfig, function() {
     QUnit.test('toggling false removes the focus-state-enabled marker class', function(assert) {
         const toolbar = createToolbar(
             [buttonItem('A'), buttonItem('B')],
-            { focusStateEnabled: true },
+            { allowKeyboardNavigation: true },
         );
-        assert.ok(this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
-            'marker class present when focusStateEnabled:true');
+        assert.ok(this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'marker class present when allowKeyboardNavigation:true');
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
-        assert.notOk(this.$element.hasClass(TOOLBAR_FOCUS_STATE_ENABLED_CLASS),
+        assert.notOk(this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
             'marker class removed after toggling to false');
     });
 
@@ -4532,20 +4534,20 @@ QUnit.module('focusStateEnabled — runtime toggle', moduleConfig, function() {
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
         focusItemAt(toolbar, 0);
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
 
         const focusBefore = toolbar.option('focusedElement');
         press('ArrowRight');
         this.clock.tick(0);
 
         assert.strictEqual(toolbar.option('focusedElement'), focusBefore,
-            'ArrowRight is ignored when focusStateEnabled becomes false');
+            'ArrowRight is ignored when allowKeyboardNavigation becomes false');
     });
 
     QUnit.test('toggling back to true re-enables arrow navigation', function(assert) {
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
-        toolbar.option('focusStateEnabled', false);
-        toolbar.option('focusStateEnabled', true);
+        toolbar.option('allowKeyboardNavigation', false);
+        toolbar.option('allowKeyboardNavigation', true);
 
         focusItemAt(toolbar, 0);
         press('ArrowRight');
@@ -4553,7 +4555,7 @@ QUnit.module('focusStateEnabled — runtime toggle', moduleConfig, function() {
         assertFocusedItemAt(assert, toolbar, 1, 'navigation works again after re-enabling');
     });
 
-    QUnit.test('toolbar item containers never get dx-state-focused regardless of focusStateEnabled', function(assert) {
+    QUnit.test('toolbar item containers never get dx-state-focused regardless of allowKeyboardNavigation', function(assert) {
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B')]);
         focusItemAt(toolbar, 0);
         this.clock.tick(0);
@@ -4563,11 +4565,11 @@ QUnit.module('focusStateEnabled — runtime toggle', moduleConfig, function() {
         assert.strictEqual(this.$element.filter('.dx-state-focused').length, 0,
             'toolbar root has no dx-state-focused while focused');
 
-        toolbar.option('focusStateEnabled', false);
+        toolbar.option('allowKeyboardNavigation', false);
         this.clock.tick(0);
 
         assert.strictEqual(this.$element.find('.dx-toolbar-item.dx-state-focused').length, 0,
-            'item container still has no dx-state-focused after focusStateEnabled becomes false');
+            'item container still has no dx-state-focused after allowKeyboardNavigation becomes false');
     });
 });
 
@@ -4658,10 +4660,10 @@ QUnit.module('Escape semantics (consolidated)', moduleConfig, function() {
     });
 });
 
-QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleConfig, function() {
-    QUnit.test('_supportedKeys preserves base arrow/home/end handlers at focusStateEnabled:false', function(assert) {
+QUnit.module('allowKeyboardNavigation:false — fallback delegation to base', moduleConfig, function() {
+    QUnit.test('_supportedKeys preserves base arrow/home/end handlers at allowKeyboardNavigation:false', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [buttonItem('A'), buttonItem('B')],
         }).dxToolbar('instance');
 
@@ -4672,9 +4674,9 @@ QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleCo
         assert.strictEqual(typeof keys.end, 'function', 'end inherited from CollectionWidget');
     });
 
-    QUnit.test('_supportedKeys deletes arrow/home/end handlers at focusStateEnabled:true (navigator owns)', function(assert) {
+    QUnit.test('_supportedKeys deletes arrow/home/end handlers at allowKeyboardNavigation:true (navigator owns)', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [buttonItem('A'), buttonItem('B')],
         }).dxToolbar('instance');
 
@@ -4685,9 +4687,9 @@ QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleCo
         assert.strictEqual(keys.end, undefined, 'end removed');
     });
 
-    QUnit.test('ArrowRight delegates to base CollectionWidget when focusStateEnabled:false (super attachment preserved)', function(assert) {
+    QUnit.test('ArrowRight delegates to base CollectionWidget when allowKeyboardNavigation:false (super attachment preserved)', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [buttonItem('A'), buttonItem('B')],
         }).dxToolbar('instance');
 
@@ -4701,28 +4703,28 @@ QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleCo
             'ArrowRight moves focus via base CollectionWidget handler (super attachment preserved)');
     });
 
-    QUnit.test('navigator is not created at focusStateEnabled:false', function(assert) {
+    QUnit.test('navigator is not created at allowKeyboardNavigation:false', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [buttonItem('A'), buttonItem('B')],
         }).dxToolbar('instance');
 
         assert.strictEqual(toolbar._navigator, undefined,
-            'no RovingTabIndexNavigator instance when focusStateEnabled:false');
+            'no RovingTabIndexNavigator instance when allowKeyboardNavigation:false');
     });
 
-    QUnit.test('navigator IS created at focusStateEnabled:true', function(assert) {
+    QUnit.test('navigator IS created at allowKeyboardNavigation:true', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: true,
+            allowKeyboardNavigation: true,
             items: [buttonItem('A'), buttonItem('B')],
         }).dxToolbar('instance');
 
-        assert.ok(toolbar._navigator, 'RovingTabIndexNavigator instance present at focusStateEnabled:true');
+        assert.ok(toolbar._navigator, 'RovingTabIndexNavigator instance present at allowKeyboardNavigation:true');
     });
 
-    QUnit.test('_moveFocus at focusStateEnabled:false delegates to super and moves focusedElement', function(assert) {
+    QUnit.test('_moveFocus at allowKeyboardNavigation:false delegates to super and moves focusedElement', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [buttonItem('A'), buttonItem('B'), buttonItem('C')],
         }).dxToolbar('instance');
 
@@ -4731,12 +4733,12 @@ QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleCo
         toolbar._moveFocus('right');
 
         assert.strictEqual($(toolbar.option('focusedElement')).get(0), $items.eq(1).get(0),
-            'super._moveFocus moves focusedElement to next item at focusStateEnabled:false');
+            'super._moveFocus moves focusedElement to next item at allowKeyboardNavigation:false');
     });
 
-    QUnit.test('toolbar.menu.list also delegates _supportedKeys to super at focusStateEnabled:false', function(assert) {
+    QUnit.test('toolbar.menu.list also delegates _supportedKeys to super at allowKeyboardNavigation:false', function(assert) {
         const toolbar = this.$element.dxToolbar({
-            focusStateEnabled: false,
+            allowKeyboardNavigation: false,
             items: [
                 { widget: 'dxButton', locateInMenu: 'never', options: { text: 'Visible' } },
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'Menu A' } },
@@ -4748,7 +4750,7 @@ QUnit.module('focusStateEnabled:false — fallback delegation to base', moduleCo
         this.clock.tick(0);
 
         const keys = menu._list._supportedKeys();
-        assert.strictEqual(typeof keys.upArrow, 'function', 'menu list inherits upArrow from ListBase at focusStateEnabled:false');
+        assert.strictEqual(typeof keys.upArrow, 'function', 'menu list inherits upArrow from ListBase at allowKeyboardNavigation:false');
         assert.strictEqual(typeof keys.downArrow, 'function', 'menu list inherits downArrow from ListBase');
     });
 });

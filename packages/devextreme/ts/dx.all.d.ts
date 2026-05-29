@@ -30754,6 +30754,10 @@ declare module DevExpress.ui {
     TKey = any
   > extends CollectionWidgetOptions<dxToolbar<TItem, TKey>, TItem, TKey> {
     /**
+     * [descr:dxToolbarOptions.allowKeyboardNavigation]
+     */
+    allowKeyboardNavigation?: boolean;
+    /**
      * [descr:dxToolbarOptions.dataSource]
      */
     dataSource?: DevExpress.data.DataSourceLike<TItem, TKey> | null;
