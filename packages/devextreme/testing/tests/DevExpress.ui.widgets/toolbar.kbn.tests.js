@@ -5,7 +5,7 @@ import {
     DROP_DOWN_MENU_BUTTON_CLASS,
     DROP_DOWN_MENU_POPUP_WRAPPER_CLASS,
 } from '__internal/ui/toolbar/internal/toolbar.menu';
-import { TOOLBAR_KEYBOARD_NAVIGATION_CLASS } from '__internal/ui/toolbar/constants';
+import { TOOLBAR_FOCUS_MODE_CLASS, DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS } from '__internal/ui/toolbar/constants';
 import { BUTTON_CLASS } from '__internal/ui/button/button';
 import { LIST_ITEM_CLASS } from '__internal/ui/list/list.base';
 import {
@@ -3278,7 +3278,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
             'Tab keydown is not prevented by toolbar');
     });
 
-    QUnit.test('allowKeyboardNavigation:true (default) — toolbar element has dx-toolbar-keyboard-navigation class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:true (default) — toolbar element has dx-toolbar-focus-mode class', function(assert) {
         this.$element.dxToolbar({
             items: [
                 { locateInMenu: 'never', widget: 'dxButton', options: { text: 'A' } },
@@ -3286,12 +3286,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         });
 
         assert.ok(
-            this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
-            'toolbar has dx-toolbar-keyboard-navigation class when allowKeyboardNavigation:true'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'toolbar has dx-toolbar-focus-mode class when allowKeyboardNavigation:true'
         );
     });
 
-    QUnit.test('allowKeyboardNavigation:false — toolbar element does NOT have dx-toolbar-keyboard-navigation class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — toolbar element does NOT have dx-toolbar-focus-mode class', function(assert) {
         this.$element.dxToolbar({
             allowKeyboardNavigation: false,
             items: [
@@ -3300,12 +3300,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         });
 
         assert.notOk(
-            this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
-            'toolbar does not have dx-toolbar-keyboard-navigation class when allowKeyboardNavigation:false'
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
+            'toolbar does not have dx-toolbar-focus-mode class when allowKeyboardNavigation:false'
         );
     });
 
-    QUnit.test('changing allowKeyboardNavigation at runtime toggles dx-toolbar-keyboard-navigation class', function(assert) {
+    QUnit.test('changing allowKeyboardNavigation at runtime toggles dx-toolbar-focus-mode class', function(assert) {
         const toolbar = this.$element.dxToolbar({
             allowKeyboardNavigation: true,
             items: [
@@ -3314,26 +3314,26 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         }).dxToolbar('instance');
 
         assert.ok(
-            this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
             'class is present when allowKeyboardNavigation:true'
         );
 
         toolbar.option('allowKeyboardNavigation', false);
 
         assert.notOk(
-            this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
             'class is removed after setting allowKeyboardNavigation:false'
         );
 
         toolbar.option('allowKeyboardNavigation', true);
 
         assert.ok(
-            this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+            this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
             'class is re-added after setting allowKeyboardNavigation:true'
         );
     });
 
-    QUnit.test('allowKeyboardNavigation:true — overflow popup wrapper has dx-toolbar-keyboard-navigation class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:true — overflow popup wrapper has dx-dropdownmenu-list-focus-mode class', function(assert) {
         const toolbar = this.$element.dxToolbar({
             allowKeyboardNavigation: true,
             items: [
@@ -3347,12 +3347,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
         assert.ok(
-            $wrapper.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
-            'popup wrapper has dx-toolbar-keyboard-navigation class when allowKeyboardNavigation:true'
+            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper has dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:true'
         );
     });
 
-    QUnit.test('allowKeyboardNavigation:false — overflow popup wrapper does NOT have dx-toolbar-keyboard-navigation class', function(assert) {
+    QUnit.test('allowKeyboardNavigation:false — overflow popup wrapper does NOT have dx-dropdownmenu-list-focus-mode class', function(assert) {
         const toolbar = this.$element.dxToolbar({
             allowKeyboardNavigation: false,
             items: [
@@ -3366,12 +3366,12 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
         assert.notOk(
-            $wrapper.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
-            'popup wrapper does not have dx-toolbar-keyboard-navigation class when allowKeyboardNavigation:false'
+            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            'popup wrapper does not have dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:false'
         );
     });
 
-    QUnit.test('changing allowKeyboardNavigation at runtime toggles dx-toolbar-keyboard-navigation on popup wrapper', function(assert) {
+    QUnit.test('changing allowKeyboardNavigation at runtime toggles dx-dropdownmenu-list-focus-mode on popup wrapper', function(assert) {
         const toolbar = this.$element.dxToolbar({
             allowKeyboardNavigation: true,
             items: [
@@ -3386,21 +3386,21 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
 
         assert.ok(
-            $wrapper.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper has class when allowKeyboardNavigation:true'
         );
 
         toolbar.option('allowKeyboardNavigation', false);
 
         assert.notOk(
-            $wrapper.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper loses class after setting allowKeyboardNavigation:false'
         );
 
         toolbar.option('allowKeyboardNavigation', true);
 
         assert.ok(
-            $wrapper.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper regains class after setting allowKeyboardNavigation:true'
         );
     });
@@ -4521,12 +4521,12 @@ QUnit.module('allowKeyboardNavigation — runtime toggle', moduleConfig, functio
             [buttonItem('A'), buttonItem('B')],
             { allowKeyboardNavigation: true },
         );
-        assert.ok(this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+        assert.ok(this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
             'marker class present when allowKeyboardNavigation:true');
 
         toolbar.option('allowKeyboardNavigation', false);
 
-        assert.notOk(this.$element.hasClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS),
+        assert.notOk(this.$element.hasClass(TOOLBAR_FOCUS_MODE_CLASS),
             'marker class removed after toggling to false');
     });
 

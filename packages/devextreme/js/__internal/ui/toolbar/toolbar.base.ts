@@ -23,7 +23,7 @@ import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor'
 import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
-import { TOOLBAR_CLASS, TOOLBAR_KEYBOARD_NAVIGATION_CLASS } from './constants';
+import { TOOLBAR_CLASS, TOOLBAR_FOCUS_MODE_CLASS } from './constants';
 import {
   enterKeyHandler,
   focusItemWidget,
@@ -406,7 +406,7 @@ class ToolbarBase<
     const { allowKeyboardNavigation } = this.option();
     this.$element()
       .addClass(TOOLBAR_CLASS)
-      .toggleClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS, !!allowKeyboardNavigation);
+      .toggleClass(TOOLBAR_FOCUS_MODE_CLASS, !!allowKeyboardNavigation);
 
     this._$toolbarItemsContainer = $('<div>')
       .addClass(TOOLBAR_ITEMS_CONTAINER_CLASS)
@@ -715,7 +715,7 @@ class ToolbarBase<
         this._applyCompactMode();
         break;
       case 'allowKeyboardNavigation':
-        this.$element().toggleClass(TOOLBAR_KEYBOARD_NAVIGATION_CLASS, !!value);
+        this.$element().toggleClass(TOOLBAR_FOCUS_MODE_CLASS, !!value);
         if (!value) {
           this.option('focusedElement', null);
         }
