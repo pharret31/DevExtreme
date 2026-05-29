@@ -2,18 +2,21 @@ import { keyboard } from '@js/common/core/events/short';
 import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
 import type { DxEvent } from '@js/events';
-import type { Item } from '@js/ui/toolbar';
+import { getPublicElement } from '@ts/core/m_element';
 import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor';
 
+import type Toolbar from '../toolbar';
 import {
   applyItemTabIndex,
   closeItemWidget,
   closeOpenSubmenu,
   getItemFocusTarget as defaultGetItemFocusTarget,
+  isItemDisabled,
   isItemWidgetOpened,
   isMenuTarget,
   isTextInputTarget,
 } from '../toolbar.utils';
+import type ToolbarMenuList from './toolbar.menu.list';
 
 type Direction = 'horizontal' | 'vertical';
 
@@ -31,18 +34,7 @@ const VERTICAL_KEY_LOCATION: Record<string, string> = {
   End: 'last',
 };
 
-interface HostComponent {
-  $element: () => dxElementWrapper;
-  _keyboardEventBindingTarget: () => dxElementWrapper;
-  _keyboardHandler: (opts: KeyboardKeyDownEvent) => boolean;
-  option: () => {
-    focusedElement?: Element | dxElementWrapper | null;
-    focusStateEnabled?: boolean;
-  };
-  _moveFocus: (location: string, e?: DxEvent<KeyboardEvent>) => void;
-  _getAvailableItems: ($itemElements?: dxElementWrapper) => dxElementWrapper;
-  _getItemData: ($item: dxElementWrapper) => Item;
-}
+type HostComponent = Toolbar | ToolbarMenuList;
 
 export interface RovingTabIndexNavigatorConfig {
   component: HostComponent;
@@ -200,8 +192,9 @@ export class RovingTabIndexNavigator {
   }
 
   getItemTabIndex($item: dxElementWrapper): number {
-    const itemData = this.config.component._getItemData($item);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    const itemData = this.config.component._getItemData($item) as
+      | { options?: { tabIndex?: number } }
+      | undefined;
     return itemData?.options?.tabIndex ?? 0;
   }
 
@@ -257,5 +250,121 @@ export class RovingTabIndexNavigator {
       applyItemTabIndex($newActive, this.getItemTabIndex($newActive));
       this.$prevActiveItem = $newActive;
     }
+  }
+}
+
+export function enterKeyHandler(
+  component: HostComponent,
+  e: DxEvent<KeyboardEvent>,
+  callSuper: (e: DxEvent<KeyboardEvent>) => void,
+): void {
+  const { focusStateEnabled, focusedElement } = component.option();
+
+  if (!focusStateEnabled) {
+    callSuper(e);
+    return;
+  }
+
+  const target = e.target as HTMLElement;
+  if (isTextInputTarget(target) || isMenuTarget(target)) {
+    return;
+  }
+
+  component._handleActivationAtNavLevel(e);
+  if (e.defaultPrevented) {
+    return;
+  }
+
+  const $item = $(focusedElement);
+  if ($item.length) {
+    const $textEditor = $item.find('.dx-texteditor-input').first();
+    if ($textEditor.length) {
+      e.preventDefault();
+      ($textEditor.get(0) as HTMLElement).focus();
+      return;
+    }
+  }
+
+  callSuper(e);
+}
+
+export function updateRovingTabIndex(
+  component: HostComponent,
+  $activeItem?: dxElementWrapper,
+): void {
+  component._navigator?.updateRovingTabIndex($activeItem);
+}
+
+export function setFocusedItem(
+  component: HostComponent,
+  $target: dxElementWrapper,
+  callSuper: ($target: dxElementWrapper) => void,
+): void {
+  callSuper($target);
+  updateRovingTabIndex(component, $target);
+}
+
+export function focusOutHandler(
+  component: HostComponent,
+  e: DxEvent,
+  callSuper: (e: DxEvent) => void,
+): void {
+  const { relatedTarget } = e as DxEvent & { relatedTarget: Element };
+  const target = e.target as Element;
+
+  if (relatedTarget && component.$element().get(0)?.contains(relatedTarget)) {
+    return;
+  }
+
+  if (relatedTarget && $(relatedTarget).closest('.dx-overlay-content').length) {
+    return;
+  }
+
+  if (target && $(target).closest('.dx-overlay-content').length) {
+    return;
+  }
+
+  callSuper(e);
+}
+
+export function focusItemWidget(
+  component: HostComponent,
+  $item: dxElementWrapper,
+): void {
+  if (component._navigator) {
+    component._navigator.focusItemWidget($item);
+    return;
+  }
+  const $focusTarget = component._getItemFocusTarget($item);
+  if (!$focusTarget?.length) {
+    return;
+  }
+  ($focusTarget.get(0) as HTMLElement).focus();
+}
+
+export function getAvailableItems(
+  component: HostComponent,
+  $itemElements?: dxElementWrapper,
+): dxElementWrapper {
+  const $visible = component._getVisibleItems($itemElements);
+  const { disabled } = component.option();
+  const widgetDisabled = !!disabled;
+  const elements = Array.from($visible.toArray()).filter(
+    (item) => !isItemDisabled($(item), widgetDisabled)
+      && !!component._getItemFocusTarget($(item))?.length,
+  );
+
+  return $(elements) as unknown as dxElementWrapper;
+}
+
+export function focusInHandler(
+  component: HostComponent,
+  e: DxEvent,
+): void {
+  const $target = $(e.target as Element);
+  const $item = $target.closest(component._getKeyboardNavItemSelector());
+
+  if ($item.length && defaultGetItemFocusTarget($item)?.length) {
+    component.option({ focusedElement: getPublicElement($item) });
   }
 }
