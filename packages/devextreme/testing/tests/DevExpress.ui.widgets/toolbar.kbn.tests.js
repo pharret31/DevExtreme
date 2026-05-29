@@ -5,7 +5,7 @@ import {
     DROP_DOWN_MENU_BUTTON_CLASS,
     DROP_DOWN_MENU_POPUP_WRAPPER_CLASS,
 } from '__internal/ui/toolbar/internal/toolbar.menu';
-import { TOOLBAR_FOCUS_MODE_CLASS, DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS } from '__internal/ui/toolbar/constants';
+import { TOOLBAR_FOCUS_MODE_CLASS, DROPDOWNMENU_LIST_FOCUS_MODE_CLASS } from '__internal/ui/toolbar/constants';
 import { BUTTON_CLASS } from '__internal/ui/button/button';
 import { LIST_ITEM_CLASS } from '__internal/ui/list/list.base';
 import {
@@ -3347,7 +3347,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
         assert.ok(
-            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper has dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:true'
         );
     });
@@ -3366,7 +3366,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
 
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
         assert.notOk(
-            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper does not have dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:false'
         );
     });
@@ -3386,21 +3386,21 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
 
         assert.ok(
-            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper has class when allowKeyboardNavigation:true'
         );
 
         toolbar.option('allowKeyboardNavigation', false);
 
         assert.notOk(
-            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper loses class after setting allowKeyboardNavigation:false'
         );
 
         toolbar.option('allowKeyboardNavigation', true);
 
         assert.ok(
-            $wrapper.hasClass(DROPDOWN_MENU_LIST_FOCUS_MODE_CLASS),
+            $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper regains class after setting allowKeyboardNavigation:true'
         );
     });
