@@ -11,6 +11,7 @@ import {
   closeItemWidget,
   closeOpenSubmenu,
   getItemFocusTarget as defaultGetItemFocusTarget,
+  getPlainItemFocusTargets,
   isItemDisabled,
   isItemWidgetOpened,
   isMenuTarget,
@@ -106,6 +107,11 @@ export class RovingTabIndexNavigator {
       const isTextInput = isTextInputTarget(target);
       const isMenu = isMenuTarget(target);
 
+      if (e.key === 'Tab') {
+        this.config.onTabKey?.();
+        return;
+      }
+
       if ((isTextInput || isMenu) && e.key !== 'Escape') {
         return;
       }
@@ -124,11 +130,6 @@ export class RovingTabIndexNavigator {
         return;
       }
 
-      if (e.key === 'Tab') {
-        this.config.onTabKey?.();
-        return;
-      }
-
       const location = this.getKeyToLocation()[e.key];
 
       if (!location) {
@@ -141,10 +142,15 @@ export class RovingTabIndexNavigator {
         return;
       }
 
+      if (this.moveInsidePlainItem(target, location, e)) {
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
 
       this.moveFocus(location);
+      this.focusPlainItemEdge(location);
     };
 
     element.addEventListener('keydown', this.captureHandler as EventListener, true);
@@ -156,6 +162,70 @@ export class RovingTabIndexNavigator {
       element.removeEventListener('keydown', this.captureHandler as EventListener, true);
       this.captureHandler = undefined;
     }
+  }
+
+  private moveInsidePlainItem(
+    target: HTMLElement,
+    location: string,
+    e: KeyboardEvent,
+  ): boolean {
+    if (this.config.direction !== 'horizontal' || (location !== 'left' && location !== 'right')) {
+      return false;
+    }
+
+    const { focusedElement } = this.config.component.option();
+    const $focused = $(focusedElement);
+    const $item = $(target).closest(this.config.itemsSelector);
+
+    if (!$focused.length || $focused.get(0) !== $item.get(0)) {
+      return false;
+    }
+
+    const $targets = getPlainItemFocusTargets($focused);
+    if ($targets.length <= 1) {
+      return false;
+    }
+
+    const targets = $targets.toArray() as HTMLElement[];
+    const currentIndex = targets.findIndex((element) => element === target || element.contains(target));
+    if (currentIndex < 0) {
+      return false;
+    }
+
+    const nextIndex = currentIndex + (location === 'right' ? 1 : -1);
+    if (nextIndex < 0 || nextIndex >= targets.length) {
+      return false;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    $targets.attr('tabIndex', -1);
+    $(targets[nextIndex]).attr('tabIndex', this.getItemTabIndex($focused));
+    targets[nextIndex].focus();
+
+    return true;
+  }
+
+  private focusPlainItemEdge(location: string): void {
+    if (this.config.direction !== 'horizontal' || (location !== 'left' && location !== 'right')) {
+      return;
+    }
+
+    const { focusedElement } = this.config.component.option();
+    const $focused = $(focusedElement);
+    const $targets = getPlainItemFocusTargets($focused);
+
+    if ($targets.length <= 1) {
+      return;
+    }
+
+    const targets = $targets.toArray() as HTMLElement[];
+    const edgeTarget = location === 'left' ? targets[targets.length - 1] : targets[0];
+
+    $targets.attr('tabIndex', -1);
+    $(edgeTarget).attr('tabIndex', this.getItemTabIndex($focused));
+    edgeTarget.focus();
   }
 
   private handleEscapeInsideWidget(target: HTMLElement, e: KeyboardEvent, isMenu: boolean): void {

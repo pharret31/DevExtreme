@@ -10,6 +10,7 @@ import type Toolbar from './toolbar';
 const BUTTON_GROUP_CLASS = 'dx-buttongroup';
 const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
 const TOOLBAR_ITEMS = ['dxAutocomplete', 'dxButton', 'dxCheckBox', 'dxDateBox', 'dxDateRangeBox', 'dxMenu', 'dxSelectBox', 'dxSwitch', 'dxTabs', 'dxTextBox', 'dxButtonGroup', 'dxDropDownButton'];
+const TOOLBAR_WIDGETS_SELECTOR = TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(',');
 const NATIVE_FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]';
 
 export function isTextInputTarget(target: HTMLElement): boolean {
@@ -69,7 +70,7 @@ const getWidgetName = ($element: dxElementWrapper): string => {
 };
 
 export function closeItemWidget($item: dxElementWrapper): boolean {
-  const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
+  const $widgets = $item.find(TOOLBAR_WIDGETS_SELECTOR);
 
   if (!$widgets.length) {
     return false;
@@ -101,7 +102,7 @@ export function isItemDisabled($item: dxElementWrapper, widgetDisabled: boolean)
 }
 
 export function isItemWidgetOpened($item: dxElementWrapper): boolean {
-  const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
+  const $widgets = $item.find(TOOLBAR_WIDGETS_SELECTOR);
 
   if (!$widgets.length) {
     return false;
@@ -122,7 +123,7 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
     return $item;
   }
 
-  const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
+  const $widgets = $item.find(TOOLBAR_WIDGETS_SELECTOR);
 
   if (!$widgets.length) {
     const $nativeFocusable = $item.find(NATIVE_FOCUSABLE_SELECTOR).first();
@@ -145,11 +146,30 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
   return $base ?? $(itemInstance.element());
 }
 
+export function getPlainItemFocusTargets($item: dxElementWrapper): dxElementWrapper {
+  if ($item.hasClass(DROP_DOWN_MENU_BUTTON_CLASS)) {
+    return $();
+  }
+
+  const $widgets = $item.find(TOOLBAR_WIDGETS_SELECTOR);
+  if ($widgets.length) {
+    return $();
+  }
+
+  return $item.find(NATIVE_FOCUSABLE_SELECTOR);
+}
+
 export function applyItemTabIndex($item: dxElementWrapper, tabIndex: number): void {
   const $focusTarget = getItemFocusTarget($item);
   if (!$focusTarget?.length) {
     return;
   }
+
+  const $plainTargets = getPlainItemFocusTargets($item);
+  if ($plainTargets.length > 1) {
+    $plainTargets.attr('tabIndex', -1);
+  }
+
   $focusTarget.attr('tabIndex', tabIndex);
 
   if ($focusTarget.hasClass('dx-texteditor')) {
@@ -164,7 +184,7 @@ export function applyItemTabIndex($item: dxElementWrapper, tabIndex: number): vo
 }
 
 export function setItemWidgetFocusState($item: dxElementWrapper, isFocused: boolean): void {
-  const $widgets = $item.find(TOOLBAR_ITEMS.map((w) => w.toLowerCase().replace('dx', '.dx-')).join(','));
+  const $widgets = $item.find(TOOLBAR_WIDGETS_SELECTOR);
 
   if (!$widgets.length) {
     return;
