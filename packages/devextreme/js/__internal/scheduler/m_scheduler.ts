@@ -30,13 +30,13 @@ import DataHelperMixin from '@js/data_helper';
 import { custom as customDialog } from '@js/ui/dialog';
 import type {
   Appointment, AppointmentTooltipShowingEvent, DayOfWeek, Occurrence,
-  Properties as SchedulerProperties,
 } from '@js/ui/scheduler';
 import errors from '@js/ui/widget/ui.errors';
 import { dateUtilsTs } from '@ts/core/utils/date';
 
 import { createA11yStatusContainer } from './a11y_status/a11y_status_render';
 import { getA11yStatusText } from './a11y_status/a11y_status_text';
+import { AppointmentDragController } from './appointment_drag_controller';
 import type { AppointmentFormConfig } from './appointment_popup/form';
 import { AppointmentForm } from './appointment_popup/form';
 import { AppointmentPopup } from './appointment_popup/popup';
@@ -65,6 +65,7 @@ import { validateRRule } from './recurrence/validate_rule';
 import { SchedulerOptionsBaseWidget } from './scheduler_options_base_widget';
 import { DesktopTooltipStrategy } from './tooltip_strategies/desktop_tooltip_strategy';
 import { MobileTooltipStrategy } from './tooltip_strategies/mobile_tooltip_strategy';
+import type { AppointmentTooltipExtraOptions } from './tooltip_strategies/tooltip_strategy_base';
 import type {
   AppointmentTooltipItem,
   SafeAppointment,
@@ -177,6 +178,8 @@ class Scheduler extends SchedulerOptionsBaseWidget {
   // TODO: used externally in m_appointment_drag_behavior.ts, m_subscribes.ts, workspaces/m_work_space.ts
   _appointments: any;
 
+  private appointmentDragController!: AppointmentDragController;
+
   appointmentDataSource!: AppointmentDataSource;
 
   _dataSource: any;
@@ -222,6 +225,8 @@ class Scheduler extends SchedulerOptionsBaseWidget {
 
   private mainContainer: any;
 
+  private $draggableContainer?: dxElementWrapper;
+
   private readonly all: any;
 
   _options: any;
@@ -229,8 +234,6 @@ class Scheduler extends SchedulerOptionsBaseWidget {
   private editAppointmentData: any;
 
   private timeZonesPromise!: Promise<TimezoneLabel[]>;
-
-  private appointmentRenderedAction!: SchedulerProperties['onAppointmentRendered'];
 
   get timeZoneCalculator() {
     if (!this.timeZoneCalculatorInstance) {
@@ -426,16 +429,24 @@ class Scheduler extends SchedulerOptionsBaseWidget {
         break;
       case 'onAppointmentRendered':
         if (this.option('_newAppointments')) {
-          this.createAppointmentRenderedAction();
+          this.actions.onAppointmentRendered = this._createActionByOption('onAppointmentRendered');
         } else {
           this._appointments.option('onItemRendered', this.getAppointmentRenderedAction());
         }
         break;
       case 'onAppointmentClick':
-        this._appointments.option('onItemClick', this._createActionByOption(name));
+        if (this.option('_newAppointments')) {
+          this.actions.onAppointmentClick = this._createActionByOption('onAppointmentClick');
+        } else {
+          this._appointments.option('onItemClick', this._createActionByOption(name));
+        }
         break;
       case 'onAppointmentDblClick':
-        this._appointments.option(name, this._createActionByOption(name));
+        if (this.option('_newAppointments')) {
+          this.actions.onAppointmentDblClick = this._createActionByOption('onAppointmentDblClick');
+        } else {
+          this._appointments.option(name, this._createActionByOption(name));
+        }
         break;
       case 'onAppointmentContextMenu':
         this._appointments.option('onItemContextMenu', this._createActionByOption(name));
@@ -503,7 +514,11 @@ class Scheduler extends SchedulerOptionsBaseWidget {
         this.initEditing();
         const { editing } = this;
 
-        this.bringEditingModeToAppointments(editing);
+        if (this.option('_newAppointments')) {
+          this._appointments.option('allowDelete', this.editing.allowDeleting);
+        } else {
+          this.bringEditingModeToAppointments(editing);
+        }
 
         this.hideAppointmentTooltip();
         this.createAppointmentPopupForm();
@@ -615,8 +630,12 @@ class Scheduler extends SchedulerOptionsBaseWidget {
     return this.currentView.type === 'agenda';
   }
 
-  private allowDragging() {
+  private allowDragging(): boolean {
     return this.editing.allowDragging && !this.isAgenda();
+  }
+
+  private canDragAppointment(appointmentData: Appointment): boolean {
+    return this.allowDragging() && !this._isAppointmentBeingUpdated(appointmentData);
   }
 
   private allowResizing() {
@@ -815,11 +834,18 @@ class Scheduler extends SchedulerOptionsBaseWidget {
 
     this.notifyScheduler = new NotifyScheduler({ scheduler: this });
 
-    this.createAppointmentRenderedAction();
-  }
+    this.appointmentDragController = new AppointmentDragController({
+      component: this,
+      $draggableContainer: () => this.$draggableContainer!,
+      canDragAppointment: this.canDragAppointment.bind(this),
+      getCellFromDragTarget: ($dragTarget) => this._workSpace.getCellFromDragTarget($dragTarget),
 
-  private createAppointmentRenderedAction() {
-    this.appointmentRenderedAction = this._createActionByOption('onAppointmentRendered');
+      // @ts-expect-error _createComponent is not defined in ts
+      createComponent: this._createComponent.bind(this),
+      hideAppointmentTooltip: this.hideAppointmentTooltip.bind(this),
+
+      updateAppointmentOnDrop: this.updateAppointmentOnDrop.bind(this),
+    });
   }
 
   createAppointmentDataSource() {
@@ -1009,6 +1035,9 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       onAppointmentFormOpening: this._createActionByOption('onAppointmentFormOpening'),
       onAppointmentTooltipShowing: this._createActionByOption('onAppointmentTooltipShowing'),
       onSelectionEnd: this._createActionByOption('onSelectionEnd'),
+      onAppointmentRendered: this._createActionByOption('onAppointmentRendered'),
+      onAppointmentClick: this._createActionByOption('onAppointmentClick'),
+      onAppointmentDblClick: this._createActionByOption('onAppointmentDblClick'),
     };
   }
 
@@ -1071,24 +1100,33 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       const appointmentsConfig: Partial<AppointmentsProperties> = {
         tabIndex: this.option('tabIndex'),
         currentView: this.option('currentView') as ViewType,
+        allowDelete: this.editing.allowDeleting,
         appointmentTemplate: this.getViewOption('appointmentTemplate'),
         appointmentCollectorTemplate: this.getViewOption('appointmentCollectorTemplate'),
-        onAppointmentRendered: (e) => {
-          // @ts-expect-error 'component' property is set by action
-          this.appointmentRenderedAction({
-            appointmentElement: e.element,
-            appointmentData: e.appointmentData,
-            targetedAppointmentData: e.targetedAppointmentData,
-          });
+
+        onAppointmentRendered: (...args) => this.actions.onAppointmentRendered(...args),
+        onAppointmentClick: (...args) => this.actions.onAppointmentClick(...args),
+        onAppointmentDblClick: (...args) => this.actions.onAppointmentDblClick(...args),
+        onDeleteKeyPress: (e) => {
+          this.checkAndDeleteAppointment(e.appointmentData, e.targetedAppointmentData);
         },
+
         getResourceManager: () => this.resourceManager,
         getAppointmentDataSource: () => this.appointmentDataSource,
         getDataAccessor: () => this._dataAccessors,
         getStartViewDate: () => this.getStartViewDate(),
-        getSortedAppointments: () => this._layoutManager.sortedItems,
+        getSortedItems: () => this._layoutManager.sortedItems,
 
         isVirtualScrolling: () => this.isVirtualScrolling(),
+
         scrollTo: this.scrollTo.bind(this),
+        showAppointmentTooltip: this.showAppointmentTooltipCore.bind(this),
+        showEditAppointmentPopup: (
+          appointmentData: SafeAppointment,
+          targetedAppointmentData: TargetedAppointment,
+        ) => {
+          this.showAppointmentPopup(appointmentData, false, targetedAppointmentData);
+        },
       };
       // @ts-expect-error
       this._appointments = this._createComponent('<div>', Appointments, appointmentsConfig);
@@ -1129,6 +1167,9 @@ class Scheduler extends SchedulerOptionsBaseWidget {
 
   private renderMainContainer() {
     this.mainContainer = $('<div>').addClass('dx-scheduler-container');
+    this.$draggableContainer = $('<div>')
+      .addClass('dx-scheduler-draggable-container')
+      .appendTo(this.mainContainer);
 
     this.$element().append(this.mainContainer);
   }
@@ -1209,9 +1250,26 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       getAppointmentDisabled: (appointment) => this._dataAccessors.get('disabled', appointment),
       onItemContextMenu: that._createActionByOption('onAppointmentContextMenu'),
       createEventArgs: that._createEventArgs.bind(that),
+
+      newAppointments: Boolean(this.option('_newAppointments')),
+      onAppointmentClick: (...args) => this.actions.onAppointmentClick(...args),
+      onListInitialized: (e) => {
+        if (this.option('_newAppointments')) {
+          this.appointmentDragController.createTooltipDraggable(
+            e.element,
+            {
+              dragTemplate: this._appointments.renderDragClone.bind(this._appointments),
+            },
+          );
+        }
+      },
+      onListDisposing: () => {
+        this.appointmentDragController.disposeTooltipDraggable();
+      },
     };
   }
 
+  // TODO<Appointments>: delete this method when old impl is removed
   _createEventArgs(e) {
     const config = {
       itemData: e.itemData.appointment,
@@ -1231,7 +1289,6 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       targetedAppointment,
       this._dataAccessors,
     );
-
     const deletingOptions = this.fireOnAppointmentDeleting(appointment, targetedAdapter);
     this.checkRecurringAppointment(
       appointment,
@@ -1403,7 +1460,9 @@ class Scheduler extends SchedulerOptionsBaseWidget {
     // @ts-expect-error
     this._workSpace = this._createComponent($workSpace, workSpaceComponent, workSpaceConfig);
 
-    this.allowDragging() && this._workSpace.initDragBehavior(this, this.all);
+    if (!this.option('_newAppointments')) {
+      this.allowDragging() && this._workSpace.initDragBehavior(this, this.all);
+    }
     this._workSpace.attachTablesEvents();
     this._workSpace.getWorkArea().append(this._appointments.$element());
   }
@@ -1439,6 +1498,7 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       || isTimelineView(currentViewOptions.type);
 
     const result = extend({
+      newAppointments: Boolean(this.option('_newAppointments')),
       resources: this.option('resources'),
       getResourceManager: () => this.resourceManager,
       getFilteredItems: () => this._layoutManager.filteredItems, // NOTE: used only in agenda
@@ -1487,6 +1547,21 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       onShowAllDayPanel: (value) => this.option('showAllDayPanel', value),
       getHeaderHeight: () => utils.DOM.getHeaderHeight(this.header),
       onScrollEnd: () => this._appointments.updateResizableArea(),
+      onInitialized: (e) => {
+        if (this.option('_newAppointments')) {
+          this.appointmentDragController.createWorkSpaceDraggable(
+            e.element,
+            {
+              getAppointmentData: this._appointments.getAppointmentData.bind(this._appointments),
+            },
+          );
+        }
+      },
+      onDisposing: () => {
+        if (this.option('_newAppointments')) {
+          this.appointmentDragController.disposeWorkSpaceDraggable();
+        }
+      },
 
       // TODO: SSR does not work correctly with renovated render
       renovateRender: this.isRenovatedRender(isVirtualScrolling),
@@ -1590,6 +1665,35 @@ class Scheduler extends SchedulerOptionsBaseWidget {
     this.appointmentPopup?.dispose();
   }
 
+  private updateAppointmentOnDrop(
+    appointmentData: Appointment,
+    targetedAppointmentData: TargetedAppointment,
+    $cell: dxElementWrapper,
+  ): Promise<void> {
+    const updatedData = this.getUpdatedData(appointmentData, $cell);
+    const newAppointmentData = extend({}, appointmentData, updatedData);
+    const startDate = this._dataAccessors.get('startDate', targetedAppointmentData);
+
+    return new Promise((resolve) => {
+      this.checkRecurringAppointment(
+        appointmentData,
+        newAppointmentData,
+        startDate,
+        () => {
+          this.updateAppointmentCore(
+            appointmentData,
+            newAppointmentData,
+          ).always(resolve);
+        },
+        false,
+        undefined,
+        undefined,
+        undefined,
+        (): void => { resolve(); },
+      );
+    });
+  }
+
   checkRecurringAppointment(
     rawAppointment,
     singleAppointment,
@@ -1599,6 +1703,7 @@ class Scheduler extends SchedulerOptionsBaseWidget {
     isPopupEditing?: any,
     dragEvent?: any,
     recurrenceEditMode?: any,
+    onCancel?: () => void,
   ) {
     const recurrenceRule = this._dataAccessors.get('recurrenceRule', rawAppointment);
 
@@ -1633,7 +1738,13 @@ class Scheduler extends SchedulerOptionsBaseWidget {
               dragEvent,
             );
           })
-          .fail(() => this._appointments.moveAppointmentBack(dragEvent));
+          .fail(() => {
+            if (this.option('_newAppointments')) {
+              onCancel?.();
+            } else {
+              this._appointments.moveAppointmentBack(dragEvent);
+            }
+          });
     }
   }
 
@@ -1724,7 +1835,7 @@ class Scheduler extends SchedulerOptionsBaseWidget {
     return this.recurrenceDialog.show();
   }
 
-  getUpdatedData(rawAppointment) {
+  getUpdatedData(rawAppointment, $cell?) {
     const viewOffset = this.getViewOffsetMs();
 
     const getConvertedFromGrid = (date: any): Date | undefined => {
@@ -1736,7 +1847,9 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       return dateUtilsTs.addOffsets(result, -viewOffset);
     };
 
-    const targetCell = this.getTargetCellData();
+    const targetCell = $cell
+      ? this._workSpace.getCellData($cell)
+      : this.getTargetCellData();
     const appointment = new AppointmentAdapter(
       rawAppointment,
       this._dataAccessors,
@@ -1866,7 +1979,7 @@ class Scheduler extends SchedulerOptionsBaseWidget {
       dragEvent.cancel = new Deferred();
     }
 
-    if (isPromise(updatingOptions.cancel) && dragEvent) {
+    if (isPromise(updatingOptions.cancel) && (dragEvent || this.option('_newAppointments'))) {
       this.updatingAppointments.add(target);
     }
 
@@ -2100,13 +2213,18 @@ class Scheduler extends SchedulerOptionsBaseWidget {
         appointment,
         targetedAppointment,
         color: this.resourceManager.getAppointmentColor(appointmentConfig),
+        settings,
       };
 
       this.showAppointmentTooltipCore(element, [info]);
     }
   }
 
-  showAppointmentTooltipCore(target: dxElementWrapper, data: AppointmentTooltipItem[], options?: any) {
+  showAppointmentTooltipCore(
+    target: dxElementWrapper,
+    data: AppointmentTooltipItem[],
+    options?: AppointmentTooltipExtraOptions,
+  ) {
     const arg: Omit<AppointmentTooltipShowingEvent, 'component' | 'element'> = {
       cancel: false,
       appointments: data.map((item) => ({

@@ -653,7 +653,9 @@ class ToolbarBase<
     this._applyCompactMode();
   }
 
-  _renderEmptyMessage(): void {}
+  _renderEmptyMessage(): boolean {
+    return false;
+  }
 
   _clean(): void {
     super._clean();
