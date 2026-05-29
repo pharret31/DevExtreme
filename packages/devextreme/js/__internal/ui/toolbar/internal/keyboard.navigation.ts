@@ -213,7 +213,7 @@ export class RovingTabIndexNavigator {
 
   updateRovingTabIndex($activeItem?: dxElementWrapper): void {
     const { isEnabled } = this.config;
-    const enabled = isEnabled ? isEnabled() : !!this.config.component.option().focusStateEnabled;
+    const enabled = isEnabled?.() ?? false;
     if (!enabled) {
       return;
     }
@@ -243,7 +243,7 @@ export class RovingTabIndexNavigator {
 
   resetRovingTabIndex(itemsContainer: dxElementWrapper): void {
     const { isEnabled } = this.config;
-    const enabled = isEnabled ? isEnabled() : !!this.config.component.option().focusStateEnabled;
+    const enabled = isEnabled?.() ?? false;
     if (!enabled) {
       return;
     }
