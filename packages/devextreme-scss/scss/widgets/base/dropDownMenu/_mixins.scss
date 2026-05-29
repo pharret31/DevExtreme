@@ -3,7 +3,7 @@
   $border-radius,
   $section-horizontal-margin,
 ) {
-  .dx-dropdownmenu-popup-wrapper.dx-toolbar-focus-state-enabled {
+  .dx-dropdownmenu-popup-wrapper.dx-toolbar-keyboard-navigation {
     .dx-dropdownmenu-list {
       .dx-list-item:has([tabindex="0"]:focus-visible),
       .dx-list-item[tabindex="0"]:focus-visible {
