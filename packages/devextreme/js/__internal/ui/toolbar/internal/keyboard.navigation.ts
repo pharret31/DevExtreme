@@ -5,7 +5,7 @@ import type { DxEvent } from '@js/events';
 import { getPublicElement } from '@ts/core/m_element';
 import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor';
 
-import type Toolbar from '../toolbar';
+import type ToolbarBase from '../toolbar.base';
 import {
   applyItemTabIndex,
   closeItemWidget,
@@ -34,7 +34,7 @@ const VERTICAL_KEY_LOCATION: Record<string, string> = {
   End: 'last',
 };
 
-type HostComponent = Toolbar | ToolbarMenuList;
+type HostComponent = ToolbarBase | ToolbarMenuList;
 
 export interface RovingTabIndexNavigatorConfig {
   component: HostComponent;
@@ -179,6 +179,18 @@ export class RovingTabIndexNavigator {
     this.config.component._moveFocus(location, e);
   }
 
+  focusInHandler(
+    component: HostComponent,
+    e: DxEvent,
+  ): void {
+    const $target = $(e.target as Element);
+    const $item = $target.closest(this.config.itemsSelector);
+
+    if ($item.length && defaultGetItemFocusTarget($item)?.length) {
+      component.option({ focusedElement: getPublicElement($item) });
+    }
+  }
+
   focusItemWidget($item: dxElementWrapper): void {
     const $focusTarget = this.getFocusTarget($item);
     if (!$focusTarget?.length) {
@@ -288,22 +300,6 @@ export function enterKeyHandler(
   callSuper(e);
 }
 
-export function updateRovingTabIndex(
-  component: HostComponent,
-  $activeItem?: dxElementWrapper,
-): void {
-  component._navigator?.updateRovingTabIndex($activeItem);
-}
-
-export function setFocusedItem(
-  component: HostComponent,
-  $target: dxElementWrapper,
-  callSuper: ($target: dxElementWrapper) => void,
-): void {
-  callSuper($target);
-  updateRovingTabIndex(component, $target);
-}
-
 export function focusOutHandler(
   component: HostComponent,
   e: DxEvent,
@@ -355,16 +351,4 @@ export function getAvailableItems(
   );
 
   return $(elements) as unknown as dxElementWrapper;
-}
-
-export function focusInHandler(
-  component: HostComponent,
-  e: DxEvent,
-): void {
-  const $target = $(e.target as Element);
-  const $item = $target.closest(component._getKeyboardNavItemSelector());
-
-  if ($item.length && defaultGetItemFocusTarget($item)?.length) {
-    component.option({ focusedElement: getPublicElement($item) });
-  }
 }

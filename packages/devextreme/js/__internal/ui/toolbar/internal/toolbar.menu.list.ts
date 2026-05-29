@@ -12,13 +12,10 @@ import type { ItemRenderInfo, ItemTemplate } from '@ts/ui/collection/collection_
 import { ListBase } from '@ts/ui/list/list.base';
 import {
   enterKeyHandler,
-  focusInHandler,
   focusItemWidget,
   focusOutHandler,
   getAvailableItems,
   RovingTabIndexNavigator,
-  setFocusedItem,
-  updateRovingTabIndex,
 } from '@ts/ui/toolbar/internal/keyboard.navigation';
 import {
   activateMenu,
@@ -53,6 +50,14 @@ export default class ToolbarMenuList extends ListBase {
     // not by dx-state-focused on the list item container.
   }
 
+  _refreshActiveDescendant(): void {
+    // roving tabIndex: real DOM focus moves to items, aria-activedescendant not needed
+  }
+
+  _refreshItemId(): void {
+    // roving tabIndex: no synthetic id needed for aria-activedescendant
+  }
+
   _initMarkup(): void {
     this._renderSections();
     super._initMarkup();
@@ -73,10 +78,8 @@ export default class ToolbarMenuList extends ListBase {
     each(['before', 'center', 'after', 'menu'], (_, section) => {
       const sectionName = `_$${section}Section`;
 
-      if (!this[sectionName]) {
-        this[sectionName] = $('<div>')
-          .addClass(TOOLBAR_MENU_SECTION_CLASS);
-      }
+      this[sectionName] ??= $('<div>')
+        .addClass(TOOLBAR_MENU_SECTION_CLASS);
 
       this[sectionName].appendTo($container);
     });
@@ -206,20 +209,14 @@ export default class ToolbarMenuList extends ListBase {
     return getItemFocusTarget($item) ?? ($item.hasClass(TOOLBAR_MENU_ACTION_CLASS) ? $item : $());
   }
 
-  _getKeyboardNavItemSelector(): string {
-    return this._itemSelector();
-  }
-
   _enterKeyHandler(e: DxEvent<KeyboardEvent>): void {
     enterKeyHandler(this, e, (evt) => super._enterKeyHandler(evt));
   }
 
   _setFocusedItem($target: dxElementWrapper): void {
-    setFocusedItem(this, $target, ($t) => super._setFocusedItem($t));
-  }
+    super._setFocusedItem($target);
 
-  _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    updateRovingTabIndex(this, $activeItem);
+    this._navigator?.updateRovingTabIndex($target);
   }
 
   _focusOutHandler(e: DxEvent): void {
@@ -235,7 +232,7 @@ export default class ToolbarMenuList extends ListBase {
   }
 
   _focusInHandler(e: DxEvent): void {
-    focusInHandler(this, e);
+    this._navigator?.focusInHandler(this, e);
   }
 
   _resetRovingTabIndex(): void {

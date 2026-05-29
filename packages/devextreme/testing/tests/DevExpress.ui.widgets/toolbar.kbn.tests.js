@@ -111,7 +111,7 @@ const findFocusTarget = ($item) => {
     if($buttonGroup.length) return $buttonGroup;
     const $menu = $item.find('.dx-menu').first();
     if($menu.length) return $menu;
-    const $native = $item.find('button:not([disabled]), input:not([disabled]), a[href]').first();
+    const $native = $item.find('button:not([disabled]), input:not([disabled]), a[href], [tabindex]').first();
     if($native.length) return $native;
     return $item;
 };
@@ -3762,8 +3762,8 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        toolbar._updateRovingTabIndex($items.eq(1));
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
         this.clock.tick(0);
 
         assert.strictEqual($items.eq(1).attr('tabindex'), '0',
@@ -3822,8 +3822,8 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
         const toolbar = createMenuToolbar(this.$element);
         const $items = toolbar._getAvailableItems();
 
-        toolbar.option('focusedElement', $items.eq(1).get(0));
-        toolbar._updateRovingTabIndex($items.eq(1));
+        toolbar.option('focusedElement', $items.eq(0).get(0));
+        dispatchKeydown(this.$element.get(0), 'ArrowRight');
         this.clock.tick(0);
 
         $items.eq(1).get(0).focus();
@@ -4218,6 +4218,36 @@ QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
         assert.notOk($button.hasClass('dx-state-focused'),
             'visible button lost dx-state-focused after focus moved');
     });
+
+    QUnit.test('overflow list does not set aria-activedescendant on its container when item is focused', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        menu.openWithFocus('first');
+        this.clock.tick(0);
+
+        const list = menu._list;
+        const $listEl = list.$element();
+
+        assert.strictEqual($listEl.attr('aria-activedescendant'), undefined,
+            'list container has no aria-activedescendant (roving tabindex owns focus)');
+    });
+
+    QUnit.test('overflow list items do not receive a synthetic id attribute when focused', function(assert) {
+        const toolbar = makeOverflowToolbar(this.$element);
+        const menu = toolbar._layoutStrategy._menu;
+
+        menu.openWithFocus('first');
+        this.clock.tick(0);
+
+        const list = menu._list;
+        const $items = list._getAvailableItems();
+
+        $items.each(function() {
+            assert.strictEqual($(this).attr('id'), undefined,
+                'list item has no synthetic id (roving tabindex owns focus)');
+        });
+    });
 });
 
 
@@ -4378,20 +4408,23 @@ QUnit.module('Item-level tabIndex option', moduleConfig, function() {
 });
 
 QUnit.module('Roving tabindex — incremental vs reset paths', moduleConfig, function() {
-    QUnit.test('arrow navigation uses _updateRovingTabIndex (incremental)', function(assert) {
-        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
-        focusItemAt(toolbar, 0);
+    QUnit.test('arrow navigation is incremental: unrelated items are not affected', function(assert) {
+        // Use 4 items so we can distinguish the two changed items from the untouched ones
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C'), buttonItem('D')]);
+        focusItemAt(toolbar, 1); // start on B
 
-        const updateSpy = sinon.spy(toolbar, '_updateRovingTabIndex');
-        const resetSpy = sinon.spy(toolbar, '_resetRovingTabIndex');
+        const $items = toolbar._getAvailableItems();
 
-        press('ArrowRight');
+        press('ArrowRight'); // only B and C should change
 
-        assert.ok(updateSpy.called, '_updateRovingTabIndex is called on arrow navigation');
-        assert.notOk(resetSpy.called, '_resetRovingTabIndex is NOT called on arrow navigation');
-
-        updateSpy.restore();
-        resetSpy.restore();
+        assert.strictEqual(parseInt(findFocusTarget($items.eq(0)).attr('tabindex'), 10), -1,
+            'A is still -1 (was not re-scanned)');
+        assert.strictEqual(parseInt(findFocusTarget($items.eq(1)).attr('tabindex'), 10), -1,
+            'B lost tabindex=0');
+        assert.strictEqual(parseInt(findFocusTarget($items.eq(2)).attr('tabindex'), 10), 0,
+            'C gained tabindex=0');
+        assert.strictEqual(parseInt(findFocusTarget($items.eq(3)).attr('tabindex'), 10), -1,
+            'D is still -1 (was not re-scanned)');
     });
 
     QUnit.test('item disabled option change triggers _resetRovingTabIndex (full pass)', function(assert) {
@@ -4434,7 +4467,7 @@ QUnit.module('Roving tabindex — incremental vs reset paths', moduleConfig, fun
             'one tab stop after explicit reset (focused item retains the stop)');
     });
 
-    QUnit.test('after _updateRovingTabIndex on new active item, only prev/next change', function(assert) {
+    QUnit.test('ArrowRight: only the previously active and newly active items change tabindex', function(assert) {
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
         focusItemAt(toolbar, 0);
 

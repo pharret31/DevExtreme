@@ -26,13 +26,10 @@ import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/c
 import { TOOLBAR_CLASS, TOOLBAR_FOCUS_STATE_ENABLED_CLASS } from './constants';
 import {
   enterKeyHandler,
-  focusInHandler,
   focusItemWidget,
   focusOutHandler,
   getAvailableItems,
   RovingTabIndexNavigator,
-  setFocusedItem,
-  updateRovingTabIndex,
 } from './internal/keyboard.navigation';
 import {
   activateMenu,
@@ -202,40 +199,34 @@ class ToolbarBase<
     return keys;
   }
 
-  _getKeyboardNavItemSelector(): string {
-    return `${this._itemSelector()}, .dx-dropdownmenu-button`;
-  }
-
   _getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | undefined {
     return getItemFocusTarget($item);
   }
 
   _enterKeyHandler(e: DxEvent<KeyboardEvent>): void {
-    enterKeyHandler(this, e, (evt) => super._enterKeyHandler(evt));
+    enterKeyHandler(this._getContext(), e, (evt) => super._enterKeyHandler(evt));
   }
 
   _setFocusedItem($target: dxElementWrapper): void {
-    setFocusedItem(this, $target, ($t) => super._setFocusedItem($t));
-  }
+    super._setFocusedItem($target);
 
-  _updateRovingTabIndex($activeItem?: dxElementWrapper): void {
-    updateRovingTabIndex(this, $activeItem);
+    this._navigator?.updateRovingTabIndex($target);
   }
 
   _focusOutHandler(e: DxEvent): void {
-    focusOutHandler(this, e, (evt) => super._focusOutHandler(evt));
+    focusOutHandler(this._getContext(), e, (evt) => super._focusOutHandler(evt));
   }
 
   _focusItemWidget($item: dxElementWrapper): void {
-    focusItemWidget(this, $item);
+    focusItemWidget(this._getContext(), $item);
   }
 
   _getAvailableItems($itemElements?: dxElementWrapper): dxElementWrapper {
-    return getAvailableItems(this, $itemElements);
+    return getAvailableItems(this._getContext(), $itemElements);
   }
 
   _focusInHandler(e: DxEvent): void {
-    focusInHandler(this, e);
+    this._navigator?.focusInHandler(this._getContext(), e);
   }
 
   _renderFocusTarget(): void {
@@ -263,11 +254,16 @@ class ToolbarBase<
     }
 
     this._navigator = new RovingTabIndexNavigator({
-      component: this,
+      component: this._getContext(),
       itemsSelector: `${this._itemSelector()}, .dx-dropdownmenu-button`,
       direction: 'horizontal',
     });
     this._navigator.attach();
+  }
+
+  _getContext(): ToolbarBase {
+    // @ts-expect-error ts-error
+    return this;
   }
 
   _detachKeyboardEvents(): void {
