@@ -4768,6 +4768,41 @@ QUnit.module('Item-level tabIndex option', moduleConfig, function() {
 });
 
 QUnit.module('Roving tabindex — incremental vs reset paths', moduleConfig, function() {
+    QUnit.test('ArrowRight uses the DOM-focused item when focusStateEnabled is false and focusedElement is stale', function(assert) {
+        const toolbar = createToolbar([buttonItem('Attach'), buttonItem('Send')], {
+            focusStateEnabled: false,
+        });
+        const $items = toolbar._getAvailableItems();
+        const $attach = $items.eq(0);
+        const $send = $items.eq(1);
+
+        focusItemAt(toolbar, 1);
+
+        findFocusTarget($send).attr('tabindex', '-1');
+        findFocusTarget($attach).attr('tabindex', '0');
+        findFocusTarget($attach).get(0).focus();
+
+        press('ArrowRight', findFocusTarget($attach).get(0));
+
+        assert.strictEqual(toolbar.option('focusedElement'), $send.get(0), 'focus moved from DOM-focused Attach to Send');
+        assert.strictEqual(document.activeElement, findFocusTarget($send).get(0), 'Send button received DOM focus');
+    });
+
+    QUnit.test('ArrowRight uses the current roving tab stop when the keydown target is the toolbar root', function(assert) {
+        const toolbar = createToolbar([buttonItem('Attach'), buttonItem('Send')], {
+            focusStateEnabled: false,
+        });
+        const $items = toolbar._getAvailableItems();
+        const $send = $items.eq(1);
+
+        toolbar.option('focusedElement', null);
+
+        press('ArrowRight', toolbar.$element().get(0));
+
+        assert.strictEqual(toolbar.option('focusedElement'), $send.get(0), 'focus moved from current roving tab stop to Send');
+        assert.strictEqual(document.activeElement, findFocusTarget($send).get(0), 'Send button received DOM focus');
+    });
+
     QUnit.test('arrow navigation is incremental: unrelated items are not affected', function(assert) {
         // Use 4 items so we can distinguish the two changed items from the untouched ones
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C'), buttonItem('D')]);
@@ -4844,6 +4879,267 @@ QUnit.module('Roving tabindex — incremental vs reset paths', moduleConfig, fun
         assert.strictEqual(afterFirst, -1, 'first lost the stop');
         assert.strictEqual(afterSecond, 0, 'second became the stop');
         assert.strictEqual(afterThird, -1, 'third remained untouched at -1');
+    });
+});
+
+QUnit.module('Focus restore on full re-render', moduleConfig, function() {
+    QUnit.test('option("items") keeps DOM focus on the same item', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 1);
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        const $item1 = toolbar._getAvailableItems().eq(1);
+        assert.strictEqual(document.activeElement, findFocusTarget($item1).get(0),
+            'DOM focus restored to item #1 after full re-render');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('dataSource reload keeps DOM focus on the same item', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            dataSource: [buttonItem('A'), buttonItem('B'), buttonItem('C')],
+        }).dxToolbar('instance');
+        this.clock.tick(0);
+        focusItemAt(toolbar, 2);
+
+        toolbar.getDataSource().reload();
+        this.clock.tick(0);
+
+        const $item2 = toolbar._getAvailableItems().eq(2);
+        assert.strictEqual(document.activeElement, findFocusTarget($item2).get(0),
+            'DOM focus restored after dataSource reload');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('does not steal focus when the user is outside the toolbar', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B')]);
+        const outside = $('<button type="button">').text('outside').appendTo('#qunit-fixture').get(0);
+        outside.focus();
+        assert.strictEqual(document.activeElement, outside, 'precondition: focus is outside the toolbar');
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B')]);
+        this.clock.tick(0);
+
+        assert.strictEqual(document.activeElement, outside,
+            'focus stays on the outside element; toolbar did not grab it');
+        assert.notOk(this.$element.get(0).contains(document.activeElement),
+            'no toolbar item received focus');
+    });
+
+    QUnit.test('focused item removed: focus falls back to a still-present item', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C'), buttonItem('D')]);
+        focusItemAt(toolbar, 3); // D, item index 3
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B')]); // only indices 0,1 remain
+        this.clock.tick(0);
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 2, 'two items remain');
+        assert.ok(this.$element.get(0).contains(document.activeElement),
+            'focus restored to a still-present item');
+        assert.strictEqual(document.activeElement, findFocusTarget($available.eq(1)).get(0),
+            'focus landed on the last available item (no index >= 3 exists)');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('focused item becomes disabled: focus moves to an enabled item', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 0);
+
+        toolbar.option('items', [buttonItem('A', { disabled: true }), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        const $available = toolbar._getAvailableItems();
+        assert.strictEqual($available.length, 2, 'disabled item is excluded from available items');
+        assert.strictEqual(document.activeElement, findFocusTarget($available.eq(0)).get(0),
+            'focus moved to the nearest enabled item, never the disabled one');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('overflow button keeps focus after re-render', function(assert) {
+        const makeItems = () => [
+            buttonItem('Visible'),
+            overflowButtonItem('Menu A'),
+            overflowButtonItem('Menu B'),
+        ];
+        const toolbar = createToolbar(makeItems());
+        this.clock.tick(0);
+
+        const $overflow = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        assert.ok($overflow.length, 'precondition: overflow button is present');
+        toolbar.option('focusedElement', $overflow.get(0));
+        toolbar._focusItemWidget($overflow);
+        this.clock.tick(0);
+
+        toolbar.option('items', makeItems());
+        this.clock.tick(0);
+
+        const $overflowAfter = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        assert.strictEqual(document.activeElement, $overflowAfter.get(0),
+            'overflow button refocused after re-render');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('allowKeyboardNavigation:false: no focus restore attempted', function(assert) {
+        const toolbar = createToolbar(
+            [buttonItem('A'), buttonItem('B')],
+            { allowKeyboardNavigation: false },
+        );
+        findFocusTarget(toolbar._getAvailableItems().eq(0)).get(0).focus();
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B')]);
+        this.clock.tick(0);
+
+        assert.notOk(toolbar._pendingFocusDescriptor, 'no pending focus descriptor was captured');
+        assert.notOk(this.$element.get(0).contains(document.activeElement),
+            'toolbar did not re-grab focus when keyboard navigation is disabled');
+    });
+
+    QUnit.test('async-rendered template item: focus restored after render', function(assert) {
+        const makeItems = () => [
+            buttonItem('A'),
+            { locateInMenu: 'never', template: () => $('<button type="button">').text('Tpl') },
+            buttonItem('C'),
+        ];
+        const toolbar = this.$element.dxToolbar({ items: makeItems() }).dxToolbar('instance');
+        this.clock.tick(0);
+        focusItemAt(toolbar, 1); // the template button
+
+        toolbar.option('items', makeItems());
+        this.clock.tick(0);
+
+        const $tpl = toolbar._getAvailableItems().eq(1);
+        assert.strictEqual(document.activeElement, findFocusTarget($tpl).get(0),
+            'focus restored to the template item after re-render');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('multiline toolbar restores focus after re-render', function(assert) {
+        const toolbar = createToolbar(
+            [buttonItem('A'), buttonItem('B'), buttonItem('C')],
+            { multiline: true },
+        );
+        focusItemAt(toolbar, 1);
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        const $item1 = toolbar._getAvailableItems().eq(1);
+        assert.strictEqual(document.activeElement, findFocusTarget($item1).get(0),
+            'DOM focus restored in multiline mode');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('repeated re-render: still one tab stop and focus on a valid item', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 2);
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        assert.ok(this.$element.get(0).contains(document.activeElement),
+            'focus remains inside toolbar after two consecutive re-renders');
+        assertOneTabStop(assert, this.$element);
+        assert.notOk(toolbar._pendingFocusDescriptor,
+            'pending focus descriptor is fully consumed');
+    });
+});
+
+QUnit.module('Focus restore on full re-render — edge cases', moduleConfig, function() {
+    QUnit.test('restored non-first item owns the single tab stop', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 2);
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        const $items = toolbar._getAvailableItems();
+        assertActiveTabIndex(assert, $items.eq(2), 0, 'restored item #2 holds tabindex=0');
+        assertActiveTabIndex(assert, $items.eq(0), -1, 'item #0 released the reset-default stop');
+        assertActiveTabIndex(assert, $items.eq(1), -1, 'item #1 stays at -1');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('focusedElement option is re-synced to the restored item', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 1);
+
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        assertFocusedItemAt(assert, toolbar, 1,
+            'focusedElement points to the restored item (focusin pipeline ran)');
+    });
+
+    QUnit.test('disabled focused item skips to the next higher enabled item (not the last)', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C'), buttonItem('D')]);
+        focusItemAt(toolbar, 1); // B at index 1
+
+        toolbar.option('items', [
+            buttonItem('A'), buttonItem('B', { disabled: true }), buttonItem('C'), buttonItem('D'),
+        ]);
+        this.clock.tick(0);
+
+        const $available = toolbar._getAvailableItems(); // [A(0), C(2), D(3)]
+        assert.strictEqual($available.length, 3, 'disabled B is excluded');
+        assert.strictEqual(document.activeElement, findFocusTarget($available.eq(1)).get(0),
+            'focus landed on C — the next higher enabled item, not the last (D)');
+        assert.notStrictEqual(document.activeElement, findFocusTarget($available.eq(2)).get(0),
+            'focus is NOT on the last item D (distinguishes nearest-higher from last-fallback)');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('all items disabled after re-render: focus is not forced into the toolbar', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B')]);
+        focusItemAt(toolbar, 0);
+
+        toolbar.option('items', [buttonItem('A', { disabled: true }), buttonItem('B', { disabled: true })]);
+        this.clock.tick(0);
+
+        assert.strictEqual(toolbar._getAvailableItems().length, 0, 'no available items remain');
+        assert.notOk(this.$element.get(0).contains(document.activeElement),
+            'no focus is forced when nothing is focusable');
+    });
+
+    QUnit.test('captureFocusedItem tri-state: item -> descriptor, outside -> null, body -> undefined', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B')]);
+        const nav = toolbar._navigator;
+
+        const $item0 = toolbar._getAvailableItems().eq(0);
+        findFocusTarget($item0).get(0).focus();
+        const descriptor = nav.captureFocusedItem();
+        assert.ok(descriptor && typeof descriptor === 'object', 'focus on item yields a descriptor');
+        assert.strictEqual(descriptor.index, 0, 'descriptor.index is the focused item index');
+        assert.strictEqual(descriptor.overflow, false, 'descriptor.overflow is false for a normal item');
+
+        const outside = $('<button type="button">').appendTo('#qunit-fixture').get(0);
+        outside.focus();
+        assert.strictEqual(nav.captureFocusedItem(), null,
+            'focus on a real outside element -> null (drop pending)');
+
+        outside.blur();
+        assert.strictEqual(nav.captureFocusedItem(), undefined,
+            'focus on body/null -> undefined (keep pending)');
+    });
+
+    QUnit.test('body focus during a re-render does not clobber the captured descriptor', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        // seed a pending descriptor as if an earlier capture happened on item #2
+        toolbar._pendingFocusDescriptor = { index: 2, overflow: false };
+        if(document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
+
+        // a re-render while focus is on body: capture sees body -> undefined -> keeps pending
+        toolbar.option('items', [buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        this.clock.tick(0);
+
+        const $item2 = toolbar._getAvailableItems().eq(2);
+        assert.strictEqual(document.activeElement, findFocusTarget($item2).get(0),
+            'seeded descriptor survived the body-focus re-render and drove the restore');
     });
 });
 

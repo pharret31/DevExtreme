@@ -24,6 +24,7 @@ import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
 import { TOOLBAR_CLASS, TOOLBAR_FOCUS_MODE_CLASS } from './constants';
+import type { FocusRestoreDescriptor } from './internal/keyboard.navigation';
 import {
   enterKeyHandler,
   focusItemWidget,
@@ -88,6 +89,8 @@ class ToolbarBase<
   _waitParentAnimationTimeout?: ReturnType<typeof setTimeout>;
 
   _navigator?: RovingTabIndexNavigator;
+
+  _pendingFocusDescriptor?: FocusRestoreDescriptor;
 
   _getSynchronizableOptionsForCreateComponent(): (keyof TProperties)[] {
     return super._getSynchronizableOptionsForCreateComponent().filter((item) => item !== 'disabled');
@@ -396,10 +399,32 @@ class ToolbarBase<
     this._arrangeItems();
 
     this._updateFocusableItemsTabIndex();
+
+    const descriptor = this._pendingFocusDescriptor;
+    this._pendingFocusDescriptor = undefined;
+    if (descriptor) {
+      // NOTE: navigator exists only when allowKeyboardNavigation is enabled, so this
+      // restore is a no-op otherwise. It is recreated during the re-render, hence the
+      // descriptor (not the navigator) holds the pending state across the refresh.
+      this._navigator?.restoreFocus(descriptor);
+    }
   }
 
   _updateFocusableItemsTabIndex(): void {
     this._resetRovingTabIndex();
+  }
+
+  _invalidate(): void {
+    // NOTE: capture DOM focus before super resets focusedElement and cleans the item
+    // container, so it can be restored after the full re-render (roving tabIndex).
+    const captured = this._navigator?.captureFocusedItem();
+    if (captured) {
+      this._pendingFocusDescriptor = captured;
+    } else if (captured === null) {
+      this._pendingFocusDescriptor = undefined;
+    }
+
+    super._invalidate();
   }
 
   _renderToolbar(): void {

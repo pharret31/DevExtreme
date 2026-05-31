@@ -1,4 +1,5 @@
 import { keyboard } from '@js/common/core/events/short';
+import domAdapter from '@js/core/dom_adapter';
 import type { dxElementWrapper } from '@js/core/renderer';
 import $ from '@js/core/renderer';
 import type { DxEvent } from '@js/events';
@@ -45,6 +46,11 @@ export interface RovingTabIndexNavigatorConfig {
   onTabKey?: () => void;
   onEscapeKey?: () => void;
   isEnabled?: () => boolean;
+}
+
+export interface FocusRestoreDescriptor {
+  index: number | undefined;
+  overflow: boolean;
 }
 
 export class RovingTabIndexNavigator {
@@ -135,6 +141,8 @@ export class RovingTabIndexNavigator {
       if (!location) {
         return;
       }
+
+      this.syncFocusedItem(target);
 
       const { focusedElement } = this.config.component.option();
       const $focused = $(focusedElement);
@@ -246,6 +254,21 @@ export class RovingTabIndexNavigator {
     }
   }
 
+  private syncFocusedItem(target: HTMLElement): void {
+    let $item = $(target).closest(this.config.itemsSelector);
+
+    if (!$item.length) {
+      $item = $(target)
+        .find('[tabindex="0"]')
+        .closest(this.config.itemsSelector)
+        .first();
+    }
+
+    if ($item.length && defaultGetItemFocusTarget($item)?.length) {
+      this.config.component.option({ focusedElement: getPublicElement($item) });
+    }
+  }
+
   moveFocus(location: string, e?: DxEvent<KeyboardEvent>): void {
     this.config.component._moveFocus(location, e);
   }
@@ -337,6 +360,102 @@ export class RovingTabIndexNavigator {
       applyItemTabIndex($newActive, this.getItemTabIndex($newActive));
       this.$prevActiveItem = $newActive;
     }
+  }
+
+  // NOTE: tri-state result consumed before a full re-render:
+  // - descriptor: DOM focus was on a toolbar item -> remember it for restore;
+  // - null: focus moved to a real element outside the toolbar -> drop pending state;
+  // - undefined: navigation disabled or focus on body/null -> keep pending state intact
+  //   (a nested re-render may run after the item DOM was already cleaned).
+  captureFocusedItem(): FocusRestoreDescriptor | null | undefined {
+    const enabled = this.config.isEnabled?.() ?? false;
+    if (!enabled) {
+      return undefined;
+    }
+
+    const root = this.config.component.$element().get(0) as HTMLElement | undefined;
+    const active = domAdapter.getActiveElement(root);
+    const insideToolbar = !!active && active !== root && !!root?.contains(active);
+
+    if (!insideToolbar) {
+      // Focus on body/null (e.g. the focused item was removed mid re-render) keeps the
+      // pending state, so a nested re-render does not lose the original capture. Focus on
+      // any other real element means the user moved away -> drop the pending state.
+      const body = domAdapter.getBody();
+      return active && active !== body ? null : undefined;
+    }
+
+    const $item = $(active).closest(this.config.itemsSelector);
+    if (!$item.length) {
+      return null;
+    }
+
+    const itemIndexKey = this.config.component._itemIndexKey();
+    const index = $item.data(itemIndexKey) as unknown as number | undefined;
+
+    return {
+      index: typeof index === 'number' ? index : undefined,
+      overflow: $item.hasClass('dx-dropdownmenu-button'),
+    };
+  }
+
+  restoreFocus(descriptor: FocusRestoreDescriptor): void {
+    const enabled = this.config.isEnabled?.() ?? false;
+    if (!enabled) {
+      return;
+    }
+
+    const $available = this.getAvailableItems();
+    if (!$available.length) {
+      return;
+    }
+
+    const $target = this.resolveRestoreTarget($available, descriptor);
+    if (!$target?.length) {
+      return;
+    }
+
+    // NOTE: updateRovingTabIndex moves the single tab stop from the reset default
+    // (first item) onto the restored target before focus, so there is never a moment
+    // with two tab stops, regardless of whether focusin fires synchronously.
+    this.updateRovingTabIndex($target);
+    this.focusItemWidget($target);
+  }
+
+  private resolveRestoreTarget(
+    $available: dxElementWrapper,
+    descriptor: FocusRestoreDescriptor,
+  ): dxElementWrapper | undefined {
+    const { index, overflow } = descriptor;
+
+    if (overflow) {
+      const $overflow = $available.filter('.dx-dropdownmenu-button');
+      if ($overflow.length) {
+        return $overflow.first();
+      }
+    }
+
+    if (index !== undefined) {
+      const itemIndexKey = this.config.component._itemIndexKey();
+      const available = $available.toArray();
+      const getIndex = (el: Element): number | undefined => (
+        $(el).data(itemIndexKey) as unknown as number | undefined
+      );
+
+      const exact = available.find((el) => getIndex(el) === index);
+      if (exact) {
+        return $(exact);
+      }
+
+      const nearest = available.find((el) => {
+        const elIndex = getIndex(el);
+        return elIndex !== undefined && elIndex >= index;
+      });
+
+      return $(nearest ?? available[available.length - 1]);
+    }
+
+    return $available.first();
   }
 }
 
