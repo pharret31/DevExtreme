@@ -195,7 +195,9 @@ export class RovingTabIndexNavigator {
     }
 
     const targets = $targets.toArray() as HTMLElement[];
-    const currentIndex = targets.findIndex((element) => element === target || element.contains(target));
+    const currentIndex = targets.findIndex((
+      element,
+    ) => element === target || element.contains(target));
     if (currentIndex < 0) {
       return false;
     }
@@ -388,6 +390,31 @@ export class RovingTabIndexNavigator {
     const $item = $(active).closest(this.config.itemsSelector);
     if (!$item.length) {
       return null;
+    }
+
+    const itemIndexKey = this.config.component._itemIndexKey();
+    const index = $item.data(itemIndexKey) as unknown as number | undefined;
+
+    return {
+      index: typeof index === 'number' ? index : undefined,
+      overflow: $item.hasClass('dx-dropdownmenu-button'),
+    };
+  }
+
+  // Returns a descriptor for $item only if it currently owns DOM focus — e.g. the focused
+  // item is being disabled in place (an incremental option('items[n].disabled', true), not a
+  // full re-render). The caller restores focus onto an adjacent enabled item afterwards.
+  captureItemIfFocused($item: dxElementWrapper): FocusRestoreDescriptor | undefined {
+    const enabled = this.config.isEnabled?.() ?? false;
+    if (!enabled || !$item?.length) {
+      return undefined;
+    }
+
+    const root = this.config.component.$element().get(0) as HTMLElement | undefined;
+    const active = domAdapter.getActiveElement(root);
+    const item = $item.get(0);
+    if (!active || !item?.contains(active)) {
+      return undefined;
     }
 
     const itemIndexKey = this.config.component._itemIndexKey();

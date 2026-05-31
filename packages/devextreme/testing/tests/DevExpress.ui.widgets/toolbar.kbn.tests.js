@@ -5143,6 +5143,76 @@ QUnit.module('Focus restore on full re-render — edge cases', moduleConfig, fun
     });
 });
 
+QUnit.module('Focus restore — focused item disabled in place (incremental)', moduleConfig, function() {
+    QUnit.test('disabling the focused item moves DOM focus to an adjacent enabled item', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 1); // focus B
+        assert.strictEqual(
+            document.activeElement, findFocusTarget(toolbar._getAvailableItems().eq(1)).get(0),
+            'precondition: B owns DOM focus',
+        );
+
+        toolbar.option('items[1].disabled', true);
+        this.clock.tick(0);
+
+        const $available = toolbar._getAvailableItems(); // [A(0), C(2)]
+        assert.strictEqual($available.length, 2, 'disabled B excluded from available items');
+        assert.ok(this.$element.get(0).contains(document.activeElement),
+            'focus stays inside the toolbar after disabling the focused item');
+        assert.strictEqual(document.activeElement, findFocusTarget($available.eq(1)).get(0),
+            'DOM focus moved to the next enabled item (C)');
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('after disabling the focused item, arrow navigation continues without re-entering', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 0); // focus A
+
+        toolbar.option('items[0].disabled', true); // disable the focused item
+        this.clock.tick(0);
+
+        const $available = toolbar._getAvailableItems(); // [B(1), C(2)]
+        assert.strictEqual(document.activeElement, findFocusTarget($available.eq(0)).get(0),
+            'DOM focus moved to B after disabling A');
+
+        // continue navigating from the new focus — no Tab out/in required
+        press('ArrowRight', document.activeElement);
+        this.clock.tick(0);
+
+        assertFocusedItemAt(assert, toolbar, 1,
+            'ArrowRight moves on to C — toolbar navigation still works');
+    });
+
+    QUnit.test('disabling a NON-focused item does not move focus', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);
+        focusItemAt(toolbar, 0); // focus A
+
+        toolbar.option('items[2].disabled', true); // disable C, which is not focused
+        this.clock.tick(0);
+
+        assert.strictEqual(
+            document.activeElement, findFocusTarget(toolbar._getAvailableItems().eq(0)).get(0),
+            'focus remains on A; disabling another item did not steal focus',
+        );
+        assertOneTabStop(assert, this.$element);
+    });
+
+    QUnit.test('disabling the only enabled focused item does not throw and leaves no tab stop', function(assert) {
+        const toolbar = createToolbar([buttonItem('A'), buttonItem('B', { disabled: true })]);
+        focusItemAt(toolbar, 0); // only A is enabled
+
+        toolbar.option('items[0].disabled', true);
+        this.clock.tick(0);
+
+        assert.strictEqual(toolbar._getAvailableItems().length, 0, 'no enabled items remain');
+        // Nothing is focusable, so there is no roving tab stop to move focus to.
+        assert.strictEqual(
+            this.$element.find('[tabindex="0"]').not('.dx-texteditor-input').length, 0,
+            'no roving tab stop remains when nothing is focusable',
+        );
+    });
+});
+
 QUnit.module('Tab key — toolbar does not intercept', moduleConfig, function() {
     QUnit.test('Tab does not invoke roving navigation', function(assert) {
         const toolbar = createToolbar([buttonItem('A'), buttonItem('B'), buttonItem('C')]);

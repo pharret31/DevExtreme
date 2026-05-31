@@ -149,17 +149,28 @@ class Toolbar extends ToolbarBase<Properties> {
     value: unknown,
     prevValue: unknown,
   ): void {
+    // @ts-expect-error ts-error
+    const isDisabledChange = property === 'disabled' || property === 'options.disabled';
+    // NOTE: capture before super disables the item in place and resets focusedElement, so
+    // when the disabled item was the focused one we can move DOM focus onto an adjacent
+    // enabled item — otherwise focus would be stranded on a now-disabled control.
+    const disablingFocusDescriptor = isDisabledChange && !!value && !this._isMenuItem(item)
+      ? this._navigator?.captureItemIfFocused(this._findItemElementByItem(item))
+      : undefined;
+
     if (!this._isMenuItem(item)) {
       super._itemOptionChanged(item, property, value, prevValue);
     }
 
     this._layoutStrategy._itemOptionChanged(item, property, value);
-    // @ts-expect-error ts-error
-    if (property === 'disabled' || property === 'options.disabled') {
+    if (isDisabledChange) {
       if (this._isMenuItem(item)) {
         toggleItemFocusableElementTabIndex(this, item);
       } else if (this.option('allowKeyboardNavigation')) {
         this._resetRovingTabIndex();
+        if (disablingFocusDescriptor) {
+          this._navigator?.restoreFocus(disablingFocusDescriptor);
+        }
       } else {
         toggleItemFocusableElementTabIndex(this, item);
       }
