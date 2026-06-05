@@ -37,6 +37,7 @@ import {
   closeItemWidget,
   getItemFocusTarget,
   isItemWidgetOpened,
+  isTextInputTarget,
 } from './toolbar.utils';
 
 export const TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
@@ -188,6 +189,20 @@ class ToolbarBase<
 
   _supportedKeys(): SupportedKeys {
     const keys = super._supportedKeys();
+
+    // Guard: keyboard.on is registered with focusTarget=null, so _keyboardHandler fires for all
+    // keydown events bubbling through the toolbar — including those from <input>/<textarea>.
+    // Without this, the inherited space handler calls e.preventDefault() unconditionally and
+    // swallows the space character typed inside a TextBox or SelectBox widget.
+    const originalSpace = keys.space;
+    if (originalSpace) {
+      keys.space = function(this: ToolbarBase, e: DxEvent<KeyboardEvent>): void {
+        if (isTextInputTarget(e.target as HTMLElement)) {
+          return;
+        }
+        originalSpace.call(this, e);
+      };
+    }
 
     if (!this.option('allowKeyboardNavigation')) {
       return keys;

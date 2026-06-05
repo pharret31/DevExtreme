@@ -22,6 +22,7 @@ import {
   closeItemWidget,
   getItemFocusTarget,
   isItemWidgetOpened,
+  isTextInputTarget,
 } from '@ts/ui/toolbar/toolbar.utils';
 
 export const TOOLBAR_MENU_ACTION_CLASS = 'dx-toolbar-menu-action';
@@ -168,6 +169,18 @@ export default class ToolbarMenuList extends ListBase {
 
     if (!this.option('focusStateEnabled')) {
       return keys;
+    }
+
+    // Guard: keyboard.on is registered with focusTarget=null so it fires for all keydown
+    // events inside the menu list, including those from <input>/<textarea> elements.
+    const originalSpace = keys.space;
+    if (originalSpace) {
+      keys.space = function(this: ToolbarMenuList, e: DxEvent<KeyboardEvent>): void {
+        if (isTextInputTarget(e.target as HTMLElement)) {
+          return;
+        }
+        originalSpace.call(this, e);
+      };
     }
 
     delete keys.leftArrow;
