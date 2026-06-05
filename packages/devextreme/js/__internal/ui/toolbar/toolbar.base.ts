@@ -759,7 +759,6 @@ class ToolbarBase<
         if (!value) {
           this.option('focusedElement', null);
         }
-        super._optionChanged(args);
         this._attachKeyboardEvents();
         break;
       case 'grouped':
