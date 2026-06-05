@@ -5542,3 +5542,98 @@ QUnit.module('Audit cleanup — utilities and delegation', moduleConfig, functio
         assert.strictEqual(navigatorResult.length, 2, 'both menu action items are available');
     });
 });
+
+QUnit.module('Space key — text input guard', moduleConfig, function() {
+    // Regression: Space was being swallowed by the inherited CollectionWidget space handler
+    // (e.preventDefault()) because keyboard.on was registered with focusTarget=null, making
+    // it fire for every keydown that bubbles through the toolbar — including those originating
+    // from <input>/<textarea> elements inside text-editor widgets.
+
+    const spaceOnInput = ($input) => {
+        const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+        $input.get(0).dispatchEvent(event);
+        return event;
+    };
+
+    QUnit.test('Space on TextBox input (toolbar body) is NOT prevented', function(assert) {
+        this.$element.dxToolbar({
+            items: [{ widget: 'dxTextBox', locateInMenu: 'never', options: { value: 'hello' } }],
+        });
+
+        const $input = this.$element.find('.dx-texteditor-input').first();
+        $input.get(0).focus();
+
+        const event = spaceOnInput($input);
+
+        assert.strictEqual(event.defaultPrevented, false,
+            'Space is not prevented - browser can insert the character');
+    });
+
+    QUnit.test('Space on SelectBox input (toolbar body) is NOT prevented', function(assert) {
+        this.$element.dxToolbar({
+            items: [{ widget: 'dxSelectBox', locateInMenu: 'never', options: { items: ['A', 'B'], value: 'A' } }],
+        });
+
+        const $input = this.$element.find('.dx-selectbox .dx-texteditor-input').first();
+        $input.get(0).focus();
+
+        const event = spaceOnInput($input);
+
+        assert.strictEqual(event.defaultPrevented, false,
+            'Space is not prevented in SelectBox input');
+    });
+
+    QUnit.test('Space on TextBox input inside menu is NOT prevented', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [{ widget: 'dxTextBox', locateInMenu: 'always', options: { value: 'hello' } }],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $input = $popup.find('.dx-texteditor-input').first();
+        $input.get(0).focus();
+
+        const event = spaceOnInput($input);
+
+        assert.strictEqual(event.defaultPrevented, false,
+            'Space is not prevented in TextBox input inside menu');
+    });
+
+    QUnit.test('Space on SelectBox input inside menu is NOT prevented', function(assert) {
+        const toolbar = this.$element.dxToolbar({
+            items: [{ widget: 'dxSelectBox', locateInMenu: 'always', options: { items: ['A', 'B'], value: 'A' } }],
+        }).dxToolbar('instance');
+
+        const menu = toolbar._layoutStrategy._menu;
+        menu.option('opened', true);
+        this.clock.tick(0);
+
+        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $input = $popup.find('.dx-selectbox .dx-texteditor-input').first();
+        $input.get(0).focus();
+
+        const event = spaceOnInput($input);
+
+        assert.strictEqual(event.defaultPrevented, false,
+            'Space is not prevented in SelectBox input inside menu');
+    });
+
+    QUnit.test('Space on dxButton still fires click (Space guard does not regress buttons)', function(assert) {
+        let clicked = false;
+        this.$element.dxToolbar({
+            items: [{ widget: 'dxButton', locateInMenu: 'never', options: { text: 'A', onClick: () => { clicked = true; } } }],
+        });
+
+        const $button = this.$element.find('.dx-button').first();
+        $button.get(0).focus();
+        const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+        $button.get(0).dispatchEvent(event);
+        this.clock.tick(10);
+
+        assert.strictEqual(clicked, true, 'Space on dxButton still fires click');
+        assert.strictEqual(event.defaultPrevented, true, 'Space is still prevented on dxButton (prevents page scroll)');
+    });
+});
