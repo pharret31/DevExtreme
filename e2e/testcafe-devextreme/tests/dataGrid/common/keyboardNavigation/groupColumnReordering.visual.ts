@@ -94,6 +94,9 @@ const DATA_GRID_SELECTOR = '#container';
           groupIndex: 0,
         },
       ],
+      onToolbarPreparing(e): void {
+        e.toolbarOptions.allowKeyboardNavigation = false;
+      },
     });
   });
 
