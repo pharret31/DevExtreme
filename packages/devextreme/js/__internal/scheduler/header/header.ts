@@ -171,8 +171,6 @@ export class SchedulerHeader extends Widget<HeaderOptions> {
 
     return {
       ...toolbar,
-      // @ts-expect-error ts-error
-      focusStateEnabled: false,
       items: parsedItems,
     };
   }

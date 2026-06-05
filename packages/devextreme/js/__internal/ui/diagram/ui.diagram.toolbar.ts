@@ -326,7 +326,6 @@ class DiagramToolbar extends DiagramPanel {
         this._prepareToolbarItems(afterCommands, 'after', this._executeCommand),
       );
     this._toolbarInstance = this._createComponent($toolbar, Toolbar, {
-      focusStateEnabled: false,
       dataSource,
     });
   }

@@ -223,7 +223,6 @@ class FileManagerToolbar extends Widget<FileManagerToolbarOptions> {
     const $toolbar = $('<div>').appendTo(this.$element());
     const toolbar = this._createComponent($toolbar, Toolbar, {
       items: toolbarItems,
-      focusStateEnabled: false,
       visible: !hidden,
       onItemClick: (args) => this._raiseItemClicked(args),
     }) as Toolbar & { compactMode?: boolean };
