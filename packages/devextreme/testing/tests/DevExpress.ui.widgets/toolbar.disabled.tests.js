@@ -56,12 +56,12 @@ const openDropDownMenuIfExist = (toolbar) => {
     }
 };
 
-[true, false].forEach((focusStateEnabled) => {
+[true, false].forEach((allowKeyboardNavigation) => {
     ['never', 'always'].forEach((locateInMenu) => {
         [
             { widget: 'dxButton', focusableElementSelector: '.dx-button:not(.dx-dropdownmenu-button)' },
-            { widget: 'dxTextBox', focusableElementSelector: focusStateEnabled ? '.dx-textbox' : '.dx-textbox .dx-texteditor-input' },
-            { widget: 'dxSelectBox', focusableElementSelector: focusStateEnabled ? '.dx-selectbox' : '.dx-selectbox .dx-texteditor-input' },
+            { widget: 'dxTextBox', focusableElementSelector: allowKeyboardNavigation ? '.dx-textbox' : '.dx-textbox .dx-texteditor-input' },
+            { widget: 'dxSelectBox', focusableElementSelector: allowKeyboardNavigation ? '.dx-selectbox' : '.dx-selectbox .dx-texteditor-input' },
             { widget: 'dxDropDownButton', focusableElementSelector: '.dx-dropdownbutton .dx-buttongroup' },
         // { widget: 'dxAutocomplete', focusableElementSelector: '.dx-autocomplete .dx-texteditor-input' },
         // { widget: 'dxCheckBox', focusableElementSelector: '.dx-checkbox' },
@@ -70,7 +70,7 @@ const openDropDownMenuIfExist = (toolbar) => {
         // { widget: 'dxTabs', focusableElementSelector: '.dx-tabs' },
         // { widget: 'dxButtonGroup', focusableElementSelector: '.dx-buttongroup' },
         ].forEach(({ widget, focusableElementSelector }) => {
-            QUnit.module(`Disabled state: focusStateEnabled: ${focusStateEnabled}, locateInMenu: ${locateInMenu}, widget: ${widget}`, moduleConfig, () => {
+            QUnit.module(`Disabled state: allowKeyboardNavigation: ${allowKeyboardNavigation}, locateInMenu: ${locateInMenu}, widget: ${widget}`, moduleConfig, () => {
                 const itemClickHandler = sinon.spy();
                 const buttonClickHandler = sinon.spy();
 
@@ -162,7 +162,7 @@ const openDropDownMenuIfExist = (toolbar) => {
 
                             const getInitialToolbarOptions = () => {
                                 const initialToolbarOptions = {
-                                    focusStateEnabled,
+                                    allowKeyboardNavigation,
                                     items: [{
                                         location: 'after',
                                         locateInMenu,
@@ -365,7 +365,7 @@ const openDropDownMenuIfExist = (toolbar) => {
 
                 QUnit.test(`Restore default ${widget} tabIndex value on change toolbar.items[i].disabled, locateInMenu: ${locateInMenu}`, function(assert) {
                     const initialToolbarOptions = {
-                        focusStateEnabled,
+                        allowKeyboardNavigation,
                         items: [{
                             location: 'before',
                             widget,
@@ -393,7 +393,7 @@ const openDropDownMenuIfExist = (toolbar) => {
 
                 QUnit.test(`Restore default ${widget} tabIndex value on change toolbar.disabled, locateInMenu: ${locateInMenu}`, function(assert) {
                     const initialToolbarOptions = {
-                        focusStateEnabled,
+                        allowKeyboardNavigation,
                         items: [{
                             location: 'before',
                             widget,
@@ -421,7 +421,7 @@ const openDropDownMenuIfExist = (toolbar) => {
 
                 QUnit.test(`Restore default ${widget} tabIndex value on change toolbar.disabled.items[i].options.disabled, locateInMenu: ${locateInMenu}`, function(assert) {
                     const initialToolbarOptions = {
-                        focusStateEnabled,
+                        allowKeyboardNavigation,
                         items: [{
                             location: 'before',
                             widget,
@@ -451,10 +451,10 @@ const openDropDownMenuIfExist = (toolbar) => {
             });
         });
 
-        QUnit.module(`Editor state: focusStateEnabled: ${focusStateEnabled}, locateInMenu: ${locateInMenu}`, moduleConfig, () => {
+        QUnit.module(`Editor state: allowKeyboardNavigation: ${allowKeyboardNavigation}, locateInMenu: ${locateInMenu}`, moduleConfig, () => {
             QUnit.test('Changing toolbar.items[i].options.disabled does not save the current value in selectbox', function(assert) {
                 const initialToolbarOptions = {
-                    focusStateEnabled,
+                    allowKeyboardNavigation,
                     items: [{
                         location: 'before',
                         widget: 'dxSelectBox',
@@ -488,7 +488,7 @@ const openDropDownMenuIfExist = (toolbar) => {
 
             QUnit.test('Changing toolbar.disable saves the current value in selectbox', function(assert) {
                 const initialToolbarOptions = {
-                    focusStateEnabled,
+                    allowKeyboardNavigation,
                     items: [{
                         location: 'before',
                         widget: 'dxSelectBox',
@@ -522,7 +522,7 @@ const openDropDownMenuIfExist = (toolbar) => {
 
             QUnit.test('Changing toolbar.items[i].disabled saves the current value in selectbox', function(assert) {
                 const initialToolbarOptions = {
-                    focusStateEnabled,
+                    allowKeyboardNavigation,
                     items: [{
                         location: 'before',
                         widget: 'dxSelectBox',
