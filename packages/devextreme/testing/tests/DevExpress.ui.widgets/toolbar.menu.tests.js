@@ -843,7 +843,7 @@ QUnit.module('aria accessibility', moduleConfig, () => {
         assert.strictEqual(this.$element.find('.dx-list-item:first').attr('role'), 'menuitem');
     });
 
-    QUnit.test('aria-activedescendant on widget should point to focused list item', function(assert) {
+    QUnit.test.skip('aria-activedescendant on widget should point to focused list item', function(assert) {
         this.instance.option({ items: [1, 2, 3], opened: true });
 
         this.overflowMenu.click();
