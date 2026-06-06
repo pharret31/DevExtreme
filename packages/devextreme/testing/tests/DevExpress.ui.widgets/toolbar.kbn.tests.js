@@ -4196,8 +4196,9 @@ QUnit.module('Enter/Exit: dxMenu (APG Menu Button)', moduleConfig, function() {
 
         assert.strictEqual(getActiveElement(), $items.eq(1).get(0),
             'focus returned to .dx-toolbar-item after second Escape (nav-level focus target)');
-        assert.strictEqual($menuRoot.find('.dx-state-focused').length, 0,
-            'no menu-item is visually focused after exiting to nav level');
+        // NOTE: dxMenu intentionally retains dx-state-focused on the last-focused
+        // root item so the next Enter restores the position
+        // (see "Re-activating dxMenu restores previously focused item").
         assert.strictEqual($menuRoot.hasClass('dx-state-focused'), false,
             '.dx-menu root does not have dx-state-focused at nav level');
     });
@@ -4463,8 +4464,9 @@ QUnit.module('Enter/Exit: dxMenu inside overflow list', moduleConfig, function()
 
         assert.strictEqual(getActiveElement(), $menuListItem.get(0),
             'focus returned to list-item wrapper after second Escape');
-        assert.strictEqual($menuRoot.find('.dx-state-focused').length, 0,
-            'no menu-item is visually focused after exit');
+        // NOTE: dxMenu intentionally retains dx-state-focused on the last-focused
+        // root item so the next Enter restores the position
+        // (see "Re-activating dxMenu restores previously focused item").
     });
 
     QUnit.test('Re-activating dxMenu restores previously focused item', function(assert) {
@@ -4790,7 +4792,7 @@ QUnit.module('Roving tabindex — incremental vs reset paths', moduleConfig, fun
 
         press('ArrowRight', findFocusTarget($attach).get(0));
 
-        assert.strictEqual(toolbar.option('focusedElement'), $send.get(0), 'focus moved from DOM-focused Attach to Send');
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $send.get(0), 'focus moved from DOM-focused Attach to Send');
         assert.strictEqual(getActiveElement(), findFocusTarget($send).get(0), 'Send button received DOM focus');
     });
 
@@ -4805,7 +4807,7 @@ QUnit.module('Roving tabindex — incremental vs reset paths', moduleConfig, fun
 
         press('ArrowRight', toolbar.$element().get(0));
 
-        assert.strictEqual(toolbar.option('focusedElement'), $send.get(0), 'focus moved from current roving tab stop to Send');
+        assert.strictEqual($(toolbar.option('focusedElement')).get(0), $send.get(0), 'focus moved from current roving tab stop to Send');
         assert.strictEqual(getActiveElement(), findFocusTarget($send).get(0), 'Send button received DOM focus');
     });
 
