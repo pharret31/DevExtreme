@@ -153,7 +153,6 @@ toolbarWidgets.forEach(({ widget, options }) => {
     }, '#externalBefore');
 
     await createWidget('dxToolbar', {
-      allowKeyboardNavigation: false,
       items: [
         {
           location: 'before',
