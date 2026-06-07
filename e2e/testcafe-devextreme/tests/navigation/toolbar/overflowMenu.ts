@@ -71,6 +71,7 @@ test('Drop down button should lost hover and active state', async (t) => {
   });
 
   return createWidget('dxToolbar', {
+    allowKeyboardNavigation: false,
     items: [
       { text: 'item1', locateInMenu: 'always' },
       { text: 'item2', locateInMenu: 'always' },
