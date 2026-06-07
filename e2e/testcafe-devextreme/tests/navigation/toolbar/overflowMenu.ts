@@ -214,7 +214,7 @@ test('Toolbar buttons in menu appearance', async (t) => {
   await createWidget('dxToolbar', {
     width: 50,
     multiline: false,
-    focusStateEnabled: false,
+    allowKeyboardNavigation: false,
     items,
   });
 });
@@ -261,7 +261,7 @@ test('Toolbar buttons as custom template appearance', async (t) => {
   }));
 
   await createWidget('dxToolbar', {
-    focusStateEnabled: false,
+    allowKeyboardNavigation: false,
     width: 50,
     multiline: false,
     items,
@@ -313,7 +313,7 @@ test('Toolbar button group appearance', async (t) => {
   });
 
   await createWidget('dxToolbar', {
-    focusStateEnabled: false,
+    allowKeyboardNavigation: false,
     width: 50,
     items,
   });
@@ -366,7 +366,7 @@ test('Toolbar button group as custom template appearance', async (t) => {
   });
 
   await createWidget('dxToolbar', {
-    focusStateEnabled: false,
+    allowKeyboardNavigation: false,
     width: 50,
     items,
   });
