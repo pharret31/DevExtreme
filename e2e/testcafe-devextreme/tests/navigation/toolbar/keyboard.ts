@@ -7,6 +7,14 @@ import { appendElementTo } from '../../../helpers/domUtils';
 fixture.disablePageReloads`Toolbar_keyboard_navigation`
   .page(url(__dirname, '../../container.html'));
 
+// Some toolbar items (e.g. dxMenu) hold the roving-tabindex focus on the
+// .dx-toolbar-item wrapper itself rather than on a descendant, so a plain
+// `item.find(':focus')` would miss them. This helper matches both cases.
+const itemHasFocus = (item: Selector): Selector => item.filter(
+  (node) => node === document.activeElement
+    || node.contains(document.activeElement as Node | null),
+);
+
 const toolbarWidgets = [
   {
     widget: 'dxButton',
@@ -126,12 +134,12 @@ toolbarWidgets.forEach(({ widget, options }) => {
 
     await t.pressKey('tab');
     await t
-      .expect(toolbar.getItem(0).find(':focus').exists)
+      .expect(itemHasFocus(toolbar.getItem(0)).exists)
       .ok('first toolbar item should be focused after Tab');
 
     await t.pressKey('right');
     await t
-      .expect(toolbar.getItem(1).find(':focus').exists)
+      .expect(itemHasFocus(toolbar.getItem(1)).exists)
       .ok(`${widget} should be focused after arrow right`);
 
     await t.pressKey('tab');
@@ -141,7 +149,7 @@ toolbarWidgets.forEach(({ widget, options }) => {
 
     await t.pressKey('shift+tab');
     await t
-      .expect(toolbar.getItem(1).find(':focus').exists)
+      .expect(itemHasFocus(toolbar.getItem(1)).exists)
       .ok(`${widget} should be focused after Shift+Tab`);
   }).before(async () => {
     await appendElementTo('#container', 'div', 'externalBefore');
