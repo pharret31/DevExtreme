@@ -51,8 +51,8 @@ const LIST_ITEM_CLASS = 'dx-list-item';
 const BUTTON_GROUP_CLASS = 'dx-buttongroup';
 const TEXTEDITOR_CLASS = 'dx-texteditor';
 
-const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
-const DROP_DOWN_MENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
+const DROPDOWNMENU_CLASS = 'dx-dropdownmenu';
+const DROPDOWNMENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
 
 const BASE_TEXTEDITOR_WIDTH = '150px';
 
@@ -65,7 +65,7 @@ const moduleConfig = {
 
         this.overflowMenu = {
             $element: () => {
-                return this.$element.find(`.${DROP_DOWN_MENU_CLASS}`);
+                return this.$element.find(`.${DROPDOWNMENU_CLASS}`);
             },
             click() {
                 this.$element().trigger('dxclick');
@@ -1564,7 +1564,7 @@ QUnit.module('adaptivity', moduleConfig, () => {
 
         this.overflowMenu.click();
 
-        assert.strictEqual(this.$element.find(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`).length, 0, 'Toolbar container does not contain a dropDown list');
+        assert.strictEqual(this.$element.find(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`).length, 0, 'Toolbar container does not contain a dropDown list');
     });
 
     QUnit.test('init Toolbar with new menuContainer', function(assert) {
@@ -1581,7 +1581,7 @@ QUnit.module('adaptivity', moduleConfig, () => {
 
         this.overflowMenu.click();
 
-        assert.strictEqual(this.$element.find(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`).length, 1, 'Toolbar container contains a dropDown list');
+        assert.strictEqual(this.$element.find(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`).length, 1, 'Toolbar container contains a dropDown list');
     });
 
     QUnit.test('change Toolbar menuContainer', function(assert) {
@@ -1599,7 +1599,7 @@ QUnit.module('adaptivity', moduleConfig, () => {
 
         this.overflowMenu.click();
 
-        assert.strictEqual(this.$element.find(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`).length, 1, 'Toolbar container contains a dropDown list');
+        assert.strictEqual(this.$element.find(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`).length, 1, 'Toolbar container contains a dropDown list');
     });
 });
 

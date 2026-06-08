@@ -173,7 +173,8 @@ export class SingleLineStrategy {
   }
 
   _hasVisibleMenuItems(items?: Item[]): boolean {
-    const menuItems = items ?? this._toolbar.option('items');
+    const { items: optionItems } = this._toolbar.option();
+    const menuItems = items ?? optionItems;
     let result = false;
 
     const optionGetter = compileGetter('visible');

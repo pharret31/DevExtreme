@@ -4,8 +4,8 @@ import Toolbar from 'ui/toolbar';
 
 const BUTTON_CLASS = 'dx-button';
 const BUTTON_CONTENT_CLASS = 'dx-button-content';
-const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
-const DROP_DOWN_MENU_LIST_CLASS = 'dx-dropdownmenu-list';
+const DROPDOWNMENU_CLASS = 'dx-dropdownmenu';
+const DROPDOWNMENU_LIST_CLASS = 'dx-dropdownmenu-list';
 
 import 'material_blue_light.css!';
 
@@ -52,13 +52,13 @@ QUnit.module('Buttons rendering', {
                 rtlEnabled: config.rtlEnabled
             });
 
-            const dropDownMenuElement = toolbarElement.querySelector(`.${DROP_DOWN_MENU_CLASS}`);
+            const dropDownMenuElement = toolbarElement.querySelector(`.${DROPDOWNMENU_CLASS}`);
             if(config.locateInMenu === 'never') {
                 assert.strictEqual(dropDownMenuElement, null, 'dropDownMenuElement not rendered in menu');
             } else {
                 $(dropDownMenuElement).trigger('dxclick');
 
-                const dropDownMenuListElement = $(`.${DROP_DOWN_MENU_LIST_CLASS}`).get(0);
+                const dropDownMenuListElement = $(`.${DROPDOWNMENU_LIST_CLASS}`).get(0);
                 const dropDownMenuRect = dropDownMenuListElement.getBoundingClientRect();
                 const menuButtonElement = dropDownMenuListElement.querySelector(`.${BUTTON_CLASS}`);
 

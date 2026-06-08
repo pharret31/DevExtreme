@@ -1,11 +1,12 @@
 import $ from 'jquery';
 import fx from 'common/core/animation/fx';
 import { TOOLBAR_ITEM_CLASS } from '__internal/ui/toolbar/toolbar.base';
+import { DROPDOWNMENU_POPUP_WRAPPER_CLASS } from '__internal/ui/toolbar/internal/toolbar.menu';
 import {
-    DROP_DOWN_MENU_BUTTON_CLASS,
-    DROP_DOWN_MENU_POPUP_WRAPPER_CLASS,
-} from '__internal/ui/toolbar/internal/toolbar.menu';
-import { TOOLBAR_FOCUS_MODE_CLASS, DROPDOWNMENU_LIST_FOCUS_MODE_CLASS } from '__internal/ui/toolbar/constants';
+    DROPDOWNMENU_BUTTON_CLASS,
+    TOOLBAR_FOCUS_MODE_CLASS,
+    DROPDOWNMENU_LIST_FOCUS_MODE_CLASS,
+} from '__internal/ui/toolbar/constants';
 import { BUTTON_CLASS } from '__internal/ui/button/button';
 import { LIST_ITEM_CLASS } from '__internal/ui/list/list.base';
 import {
@@ -1614,7 +1615,7 @@ QUnit.module('Resize and overflow', {
         toolbar.updateDimensions();
         this.clock.tick(0);
 
-        const $overflowBtn = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflowBtn = this.$element.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         assert.strictEqual($overflowBtn.attr('tabindex'), '0',
             'overflow button has tabindex=0 when it is the only focusable element');
     });
@@ -1661,7 +1662,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         }).dxToolbar('instance');
     };
 
-    const getOverflowBtn = ($el) => $el.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+    const getOverflowBtn = ($el) => $el.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
 
     QUnit.test('Enter on overflow button opens menu; first item is focused', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
@@ -1675,7 +1676,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         const menu = toolbar._layoutStrategy._menu;
         assert.strictEqual(menu.option('opened'), true, 'Menu is opened after Enter');
 
-        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $popup = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         assert.strictEqual($popup.length > 0, true, 'Popup wrapper exists in DOM');
 
         const list = menu._list;
@@ -1774,7 +1775,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         this.clock.tick(0);
         assert.strictEqual(menu.option('opened'), true, 'Menu opened');
 
-        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $popup = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         const $listItems = $popup.find(`.${LIST_ITEM_CLASS}`);
         assert.strictEqual($listItems.length > 0, true, 'Popup has list items');
 
@@ -1849,7 +1850,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         }).dxToolbar('instance');
 
         const menu = toolbar._layoutStrategy._menu;
-        const $overflowBtn = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflowBtn = this.$element.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
 
         toolbar.option('focusedElement', $overflowBtn.get(0));
         menu.openWithFocus('first');
@@ -1867,7 +1868,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
             'Overflow button has tabindex=0 after close',
         );
 
-        const $otherButtons = this.$element.find(`.${BUTTON_CLASS}`).not(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $otherButtons = this.$element.find(`.${BUTTON_CLASS}`).not(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         const allTabindexMinus1 = $otherButtons.toArray().every(
             el => parseInt($(el).attr('tabindex'), 10) === -1,
         );
@@ -1984,7 +1985,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
         menu.openWithFocus('first');
         this.clock.tick(0);
 
-        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $popup = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         const $disabledItems = $popup.find('.dx-list-item.dx-state-disabled');
         $disabledItems.each(function() {
             const $btn = $(this).find('.dx-button');
@@ -2295,7 +2296,7 @@ QUnit.module('Overflow menu', moduleConfig, function() {
                 { widget: 'dxButton', locateInMenu: 'always', options: { text: 'After Menu' } },
             ],
         }).dxToolbar('instance');
-        const $overflowBtn = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflowBtn = this.$element.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         const menu = toolbar._layoutStrategy._menu;
 
         $overflowBtn.get(0).focus();
@@ -3669,7 +3670,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         menu.option('opened', true);
         this.clock.tick(0);
 
-        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $wrapper = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         assert.ok(
             $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper has dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:true'
@@ -3688,7 +3689,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         menu.option('opened', true);
         this.clock.tick(0);
 
-        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $wrapper = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         assert.notOk(
             $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
             'popup wrapper does not have dx-dropdownmenu-list-focus-mode class when allowKeyboardNavigation:false'
@@ -3707,7 +3708,7 @@ QUnit.module('Extra — Core behaviors', moduleConfig, function() {
         menu.option('opened', true);
         this.clock.tick(0);
 
-        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $wrapper = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
 
         assert.ok(
             $wrapper.hasClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS),
@@ -4308,7 +4309,7 @@ QUnit.module('Enter/Exit: dxMenu inside overflow list', moduleConfig, function()
             ],
         }).dxToolbar('instance');
 
-        const $overflowBtn = $el.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflowBtn = $el.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         $overflowBtn.get(0).focus();
         clock.tick(0);
 
@@ -4382,7 +4383,7 @@ QUnit.module('Enter/Exit: dxMenu inside overflow list', moduleConfig, function()
             ],
         }).dxToolbar('instance');
 
-        const $overflowBtn = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflowBtn = this.$element.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         $overflowBtn.get(0).focus();
         this.clock.tick(0);
 
@@ -4513,7 +4514,7 @@ QUnit.module('Overflow menu: visual focus states', moduleConfig, function() {
         }).dxToolbar('instance');
     }
 
-    const getOverflowBtn = ($el) => $el.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+    const getOverflowBtn = ($el) => $el.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
 
     QUnit.test('overflow button is focused when navigated to via keyboard', function(assert) {
         const toolbar = makeOverflowToolbar(this.$element);
@@ -4974,7 +4975,7 @@ QUnit.module('Focus restore on full re-render', moduleConfig, function() {
         const toolbar = createToolbar(makeItems());
         this.clock.tick(0);
 
-        const $overflow = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflow = this.$element.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         assert.ok($overflow.length, 'precondition: overflow button is present');
         toolbar.option('focusedElement', $overflow.get(0));
         toolbar._focusItemWidget($overflow);
@@ -4983,7 +4984,7 @@ QUnit.module('Focus restore on full re-render', moduleConfig, function() {
         toolbar.option('items', makeItems());
         this.clock.tick(0);
 
-        const $overflowAfter = this.$element.find(`.${DROP_DOWN_MENU_BUTTON_CLASS}`);
+        const $overflowAfter = this.$element.find(`.${DROPDOWNMENU_BUTTON_CLASS}`);
         assert.strictEqual(getActiveElement(), $overflowAfter.get(0),
             'overflow button refocused after re-render');
         assertOneTabStop(assert, this.$element);
@@ -5600,7 +5601,7 @@ QUnit.module('Space key — text input guard', moduleConfig, function() {
         menu.option('opened', true);
         this.clock.tick(0);
 
-        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $popup = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         const $input = $popup.find('.dx-texteditor-input').first();
         $input.get(0).focus();
 
@@ -5619,7 +5620,7 @@ QUnit.module('Space key — text input guard', moduleConfig, function() {
         menu.option('opened', true);
         this.clock.tick(0);
 
-        const $popup = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
+        const $popup = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
         const $input = $popup.find('.dx-selectbox .dx-texteditor-input').first();
         $input.get(0).focus();
 

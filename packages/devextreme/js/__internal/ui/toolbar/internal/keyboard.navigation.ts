@@ -5,7 +5,10 @@ import $ from '@js/core/renderer';
 import type { DxEvent } from '@js/events';
 import { getPublicElement } from '@ts/core/m_element';
 import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor';
+import { OVERLAY_CONTENT_CLASS } from '@ts/ui/overlay/overlay';
+import { TEXTEDITOR_INPUT_CLASS } from '@ts/ui/text_box/text_editor.base';
 
+import { DROPDOWNMENU_BUTTON_CLASS } from '../constants';
 import type ToolbarBase from '../toolbar.base';
 import {
   applyItemTabIndex,
@@ -397,7 +400,7 @@ export class RovingTabIndexNavigator {
 
     return {
       index: typeof index === 'number' ? index : undefined,
-      overflow: $item.hasClass('dx-dropdownmenu-button'),
+      overflow: $item.hasClass(DROPDOWNMENU_BUTTON_CLASS),
     };
   }
 
@@ -422,7 +425,7 @@ export class RovingTabIndexNavigator {
 
     return {
       index: typeof index === 'number' ? index : undefined,
-      overflow: $item.hasClass('dx-dropdownmenu-button'),
+      overflow: $item.hasClass(DROPDOWNMENU_BUTTON_CLASS),
     };
   }
 
@@ -456,7 +459,7 @@ export class RovingTabIndexNavigator {
     const { index, overflow } = descriptor;
 
     if (overflow) {
-      const $overflow = $available.filter('.dx-dropdownmenu-button');
+      const $overflow = $available.filter(`.${DROPDOWNMENU_BUTTON_CLASS}`);
       if ($overflow.length) {
         return $overflow.first();
       }
@@ -510,7 +513,7 @@ export function enterKeyHandler(
 
   const $item = $(focusedElement);
   if ($item.length) {
-    const $textEditor = $item.find('.dx-texteditor-input').first();
+    const $textEditor = $item.find(`.${TEXTEDITOR_INPUT_CLASS}`).first();
     if ($textEditor.length) {
       e.preventDefault();
       ($textEditor.get(0) as HTMLElement).focus();
@@ -533,11 +536,11 @@ export function focusOutHandler(
     return;
   }
 
-  if (relatedTarget && $(relatedTarget).closest('.dx-overlay-content').length) {
+  if (relatedTarget && $(relatedTarget).closest(`.${OVERLAY_CONTENT_CLASS}`).length) {
     return;
   }
 
-  if (target && $(target).closest('.dx-overlay-content').length) {
+  if (target && $(target).closest(`.${OVERLAY_CONTENT_CLASS}`).length) {
     return;
   }
 

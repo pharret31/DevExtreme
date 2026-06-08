@@ -22,7 +22,7 @@ const TOOLBAR_LABEL_CLASS = 'dx-toolbar-label';
 const TOOLBAR_MENU_BUTTON_CONTAINER_CLASS = 'dx-toolbar-menu-container';
 const TOOLBAR_GROUP_CLASS = 'dx-toolbar-group';
 
-const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
+const DROPDOWNMENU_CLASS = 'dx-dropdownmenu';
 
 const prepareItemTest = function(itemData) {
     const toolbar = new Toolbar($('<div>'), {
@@ -60,7 +60,7 @@ QUnit.module('render', {
         const $toolbarMenuContainer = this.element.find('.' + TOOLBAR_MENU_BUTTON_CONTAINER_CLASS);
 
         assert.equal($toolbarMenuContainer.length, 1, 'Menu container rendered');
-        assert.ok($toolbarMenuContainer.children().hasClass(DROP_DOWN_MENU_CLASS), 'DropDownMenu rendered');
+        assert.ok($toolbarMenuContainer.children().hasClass(DROPDOWNMENU_CLASS), 'DropDownMenu rendered');
     });
 
     test('items - widgets', function(assert) {

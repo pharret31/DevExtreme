@@ -23,7 +23,12 @@ import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor'
 import CollectionWidgetAsync from '@ts/ui/collection/collection_widget.async';
 import type { CollectionItemKey, CollectionWidgetBaseProperties } from '@ts/ui/collection/collection_widget.base';
 
-import { TOOLBAR_CLASS, TOOLBAR_FOCUS_MODE_CLASS } from './constants';
+import {
+  DROPDOWNMENU_BUTTON_CLASS,
+  MENU_CLASS,
+  TOOLBAR_CLASS,
+  TOOLBAR_FOCUS_MODE_CLASS,
+} from './constants';
 import type { FocusRestoreDescriptor } from './internal/keyboard.navigation';
 import {
   enterKeyHandler,
@@ -37,7 +42,7 @@ import {
   closeItemWidget,
   getItemFocusTarget,
   isItemWidgetOpened,
-  isTextInputTarget,
+  wrapSpaceKey,
 } from './toolbar.utils';
 
 export const TOOLBAR_BEFORE_CLASS = 'dx-toolbar-before';
@@ -100,9 +105,11 @@ class ToolbarBase<
   _initTemplates(): void {
     super._initTemplates();
 
+    const { integrationOptions } = this.option();
     const template = new BindableTemplate(($container, data, rawModel) => {
       if (isPlainObject(data)) {
         const { text, html, widget } = data;
+        const { useFlatButtons, useDefaultButtons } = this.option();
 
         if (text) {
           $container.text(text).wrapInner('<div>');
@@ -116,19 +123,19 @@ class ToolbarBase<
           data.options = data.options ?? {};
 
           if (!isDefined(data.options.stylingMode)) {
-            data.options.stylingMode = this.option('useFlatButtons')
+            data.options.stylingMode = useFlatButtons
               ? TEXT_BUTTON_MODE
               : DEFAULT_DROPDOWNBUTTON_STYLING_MODE;
           }
         }
 
         if (widget === 'dxButton') {
-          if (this.option('useFlatButtons')) {
+          if (useFlatButtons) {
             data.options = data.options ?? {};
             data.options.stylingMode = data.options.stylingMode ?? TEXT_BUTTON_MODE;
           }
 
-          if (this.option('useDefaultButtons')) {
+          if (useDefaultButtons) {
             data.options = data.options ?? {};
             data.options.type = data.options.type ?? DEFAULT_BUTTON_TYPE;
           }
@@ -142,7 +149,7 @@ class ToolbarBase<
         model: rawModel,
         parent: this,
       });
-    }, ['text', 'html', 'widget', 'options'], this.option('integrationOptions.watchMethod'));
+    }, ['text', 'html', 'widget', 'options'], integrationOptions?.watchMethod);
 
     this._templateManager.addDefaultTemplates({
       item: template,
@@ -190,21 +197,10 @@ class ToolbarBase<
   _supportedKeys(): SupportedKeys {
     const keys = super._supportedKeys();
 
-    // Guard: keyboard.on is registered with focusTarget=null, so _keyboardHandler fires for all
-    // keydown events bubbling through the toolbar — including those from <input>/<textarea>.
-    // Without this, the inherited space handler calls e.preventDefault() unconditionally and
-    // swallows the space character typed inside a TextBox or SelectBox widget.
-    const originalSpace = keys.space;
-    if (originalSpace) {
-      keys.space = function(this: ToolbarBase, e: DxEvent<KeyboardEvent>): void {
-        if (isTextInputTarget(e.target as HTMLElement)) {
-          return;
-        }
-        originalSpace.call(this, e);
-      };
-    }
+    wrapSpaceKey(keys);
 
-    if (!this.option('allowKeyboardNavigation')) {
+    const { allowKeyboardNavigation } = this.option();
+    if (!allowKeyboardNavigation) {
       return keys;
     }
 
@@ -264,7 +260,8 @@ class ToolbarBase<
   _attachKeyboardEvents(): void {
     this._detachKeyboardEvents();
 
-    if (!this.option('allowKeyboardNavigation')) {
+    const { allowKeyboardNavigation } = this.option();
+    if (!allowKeyboardNavigation) {
       this._keyboardListenerId = keyboard.on(
         this._keyboardEventBindingTarget(),
         null,
@@ -275,9 +272,12 @@ class ToolbarBase<
 
     this._navigator = new RovingTabIndexNavigator({
       component: this._getContext(),
-      itemsSelector: `${this._itemSelector()}, .dx-dropdownmenu-button`,
+      itemsSelector: `${this._itemSelector()}, .${DROPDOWNMENU_BUTTON_CLASS}`,
       direction: 'horizontal',
-      isEnabled: (): boolean => !!this.option('allowKeyboardNavigation'),
+      isEnabled: (): boolean => {
+        const { allowKeyboardNavigation: enabled } = this.option();
+        return !!enabled;
+      },
     });
     this._navigator.attach();
   }
@@ -294,7 +294,7 @@ class ToolbarBase<
   }
 
   _isOverflowItem($item: dxElementWrapper): boolean {
-    return $item.hasClass('dx-dropdownmenu-button');
+    return $item.hasClass(DROPDOWNMENU_BUTTON_CLASS);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -303,7 +303,7 @@ class ToolbarBase<
   }
 
   _getVisibleItems($itemElements?: dxElementWrapper): dxElementWrapper {
-    const $items = $itemElements ?? this._itemContainer().find(`${this._itemSelector()}, .dx-dropdownmenu-button`);
+    const $items = $itemElements ?? this._itemContainer().find(`${this._itemSelector()}, .${DROPDOWNMENU_BUTTON_CLASS}`);
     return $items.filter(':visible');
   }
 
@@ -326,7 +326,7 @@ class ToolbarBase<
       return;
     }
 
-    const $menu = $focused.find('.dx-menu').first();
+    const $menu = $focused.find(`.${MENU_CLASS}`).first();
     if ($menu.length) {
       e.preventDefault();
       e.stopPropagation();
@@ -349,12 +349,12 @@ class ToolbarBase<
 
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _moveFocus(location: string, e?: DxEvent<KeyboardEvent>): boolean | undefined | void {
-    if (!this.option('allowKeyboardNavigation')) {
-      const { focusedElement } = this.option();
-      return focusedElement ? super._moveFocus(location, e) : undefined;
+    const { allowKeyboardNavigation, focusedElement: prevFocusedElement } = this.option();
+
+    if (!allowKeyboardNavigation) {
+      return prevFocusedElement ? super._moveFocus(location, e) : undefined;
     }
 
-    const { focusedElement: prevFocusedElement } = this.option();
     const $prev = $(prevFocusedElement);
     if ($prev.length) {
       closeItemWidget($prev);
@@ -521,7 +521,7 @@ class ToolbarBase<
 
     this._alignSection(this._$centerSection, elementWidth - beforeWidth - afterWidth);
 
-    const isRTL = this.option('rtlEnabled');
+    const { rtlEnabled: isRTL } = this.option();
     const leftWidth = isRTL ? afterWidth : beforeWidth;
     const rightWidth = isRTL ? beforeWidth : afterWidth;
 
@@ -604,7 +604,8 @@ class ToolbarBase<
     const $element = $(this.element());
     $element.removeClass(TOOLBAR_COMPACT_CLASS);
 
-    if (this.option('compactMode') && this._getSummaryItemsSize('width', this._itemElements(), true) > getWidth($element)) {
+    const { compactMode } = this.option();
+    if (compactMode && this._getSummaryItemsSize('width', this._itemElements(), true) > getWidth($element)) {
       $element.addClass(TOOLBAR_COMPACT_CLASS);
     }
   }
@@ -649,7 +650,8 @@ class ToolbarBase<
   }
 
   _renderGroupedItems(): void {
-    each(this.option('items'), (groupIndex, group) => {
+    const { items: groups = [] } = this.option();
+    each(groups, (groupIndex, group) => {
       const groupItems = group.items;
       const $container = $('<div>').addClass(TOOLBAR_GROUP_CLASS);
       const location = group.location ?? 'center';
@@ -667,8 +669,9 @@ class ToolbarBase<
   }
 
   _renderItems(items: Item[]): void {
+    const { grouped: isGroupedOption } = this.option();
     // @ts-expect-error ts-error
-    const grouped = this.option('grouped') && items.length && items[0].items;
+    const grouped = isGroupedOption && items.length && items[0].items;
 
     if (grouped) {
       this._renderGroupedItems();

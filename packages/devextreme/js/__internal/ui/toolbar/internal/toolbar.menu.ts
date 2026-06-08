@@ -20,15 +20,14 @@ import type { WidgetProperties } from '@ts/core/widget/widget';
 import Widget from '@ts/core/widget/widget';
 import Button from '@ts/ui/button/wrapper';
 import Popup from '@ts/ui/popup/m_popup';
-import { DROPDOWNMENU_LIST_FOCUS_MODE_CLASS } from '@ts/ui/toolbar/constants';
+import { DROPDOWNMENU_BUTTON_CLASS, DROPDOWNMENU_LIST_FOCUS_MODE_CLASS } from '@ts/ui/toolbar/constants';
 import ToolbarMenuList, { TOOLBAR_MENU_ACTION_CLASS } from '@ts/ui/toolbar/internal/toolbar.menu.list';
 import { toggleItemFocusableElementTabIndex } from '@ts/ui/toolbar/toolbar.utils';
 
-export const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
-const DROP_DOWN_MENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
-export const DROP_DOWN_MENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
-const DROP_DOWN_MENU_LIST_CLASS = 'dx-dropdownmenu-list';
-export const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
+export const DROPDOWNMENU_CLASS = 'dx-dropdownmenu';
+const DROPDOWNMENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
+export const DROPDOWNMENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
+const DROPDOWNMENU_LIST_CLASS = 'dx-dropdownmenu-list';
 const POPUP_BOUNDARY_VERTICAL_OFFSET = 10;
 const POPUP_VERTICAL_OFFSET = 3;
 
@@ -142,7 +141,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
   _init(): void {
     super._init();
 
-    this.$element().addClass(DROP_DOWN_MENU_CLASS);
+    this.$element().addClass(DROPDOWNMENU_CLASS);
 
     this._initItemClickAction();
     this._initButtonClickAction();
@@ -197,7 +196,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
   }
 
   _renderButton(): void {
-    const $button = this.$element().addClass(DROP_DOWN_MENU_BUTTON_CLASS);
+    const $button = this.$element().addClass(DROPDOWNMENU_BUTTON_CLASS);
 
     const { useInkRipple } = this.option();
 
@@ -210,7 +209,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
       hoverStateEnabled: false,
       focusStateEnabled: false,
       onClick: (e: ClickEvent) => {
-        this.option('opened', !this.option('opened'));
+        const { opened } = this.option();
+        this.option('opened', !opened);
         this._buttonClickAction?.(e);
       },
     });
@@ -254,8 +254,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         const { component } = e;
         // @ts-expect-error
         component.$wrapper()
-          .addClass(DROP_DOWN_MENU_POPUP_WRAPPER_CLASS)
-          .addClass(DROP_DOWN_MENU_POPUP_CLASS)
+          .addClass(DROPDOWNMENU_POPUP_WRAPPER_CLASS)
+          .addClass(DROPDOWNMENU_POPUP_CLASS)
           .toggleClass(DROPDOWNMENU_LIST_FOCUS_MODE_CLASS, !!listFocusStateEnabled);
       },
       deferRendering: false,
@@ -281,7 +281,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
         }
       },
       onShown: () => {
-        if (this.option('listFocusStateEnabled')) {
+        const { listFocusStateEnabled: enabled } = this.option();
+        if (enabled) {
           if (this._openFocusTarget === 'last') {
             this._list?.focusLastItem();
           } else {
@@ -366,7 +367,7 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
   _renderList(contentElement: Element): void {
     const $content = $(contentElement);
-    $content.addClass(DROP_DOWN_MENU_LIST_CLASS);
+    $content.addClass(DROPDOWNMENU_LIST_CLASS);
 
     const {
       itemTemplate,
@@ -390,7 +391,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
       _itemAttributes: { role: 'menuitem' },
       _onItemsRendered: (): void => {
         // T1322123
-        if (this.option('templatesRenderAsynchronously')) {
+        const { templatesRenderAsynchronously } = this.option();
+        if (templatesRenderAsynchronously) {
           this._popup?._renderGeometry();
         }
       },
@@ -458,13 +460,15 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
     switch (name) {
       case 'items':
-      case 'dataSource':
-        if (!this.option('opened')) {
+      case 'dataSource': {
+        const { opened } = this.option();
+        if (!opened) {
           this._deferRendering = true;
         } else {
           this._setListDataSource();
         }
         break;
+      }
       case 'itemTemplate':
         this._list?.option(name, this._getTemplate(value));
         break;
@@ -512,7 +516,8 @@ export default class DropDownMenu extends Widget<DropDownMenuProperties> {
 
   _updateFocusableItemsTabIndex(): void {
     if (this._list) {
-      if (this.option('listFocusStateEnabled')) {
+      const { listFocusStateEnabled } = this.option();
+      if (listFocusStateEnabled) {
         this._list._resetRovingTabIndex();
       } else {
         const { items = [] } = this.option();

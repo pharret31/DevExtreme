@@ -26,12 +26,12 @@ QUnit.testStart(function() {
     $('#qunit-fixture').html(markup);
 });
 
-const DROP_DOWN_MENU_CLASS = 'dx-dropdownmenu';
-const DROP_DOWN_MENU_LIST_CLASS = 'dx-dropdownmenu-list';
-const DROP_DOWN_MENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
+const DROPDOWNMENU_CLASS = 'dx-dropdownmenu';
+const DROPDOWNMENU_LIST_CLASS = 'dx-dropdownmenu-list';
+const DROPDOWNMENU_BUTTON_CLASS = 'dx-dropdownmenu-button';
 const STATE_FOCUSED_CLASS = 'dx-state-focused';
-const DROP_DOWN_MENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
-const DROP_DOWN_MENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
+const DROPDOWNMENU_POPUP_CLASS = 'dx-dropdownmenu-popup';
+const DROPDOWNMENU_POPUP_WRAPPER_CLASS = 'dx-dropdownmenu-popup-wrapper';
 const LIST_ITEM_CLASS = 'dx-list-item';
 const SCROLLVIEW_CONTENT_CLASS = 'dx-scrollview-content';
 const CHECK_BOX_CLASS = 'dx-checkbox';
@@ -88,14 +88,14 @@ const moduleConfig = {
 QUnit.module('render with popup', moduleConfig, () => {
     QUnit.test('default', function(assert) {
         assert.ok(this.overflowMenu.button() instanceof Button);
-        assert.ok(this.$element.hasClass(DROP_DOWN_MENU_CLASS));
-        assert.ok(this.overflowMenu.$button().hasClass(DROP_DOWN_MENU_BUTTON_CLASS));
+        assert.ok(this.$element.hasClass(DROPDOWNMENU_CLASS));
+        assert.ok(this.overflowMenu.$button().hasClass(DROPDOWNMENU_BUTTON_CLASS));
 
         this.overflowMenu.click();
 
         assert.ok(this.overflowMenu.popup() instanceof Popup);
 
-        assert.ok(this.overflowMenu.$list().hasClass(DROP_DOWN_MENU_LIST_CLASS));
+        assert.ok(this.overflowMenu.$list().hasClass(DROPDOWNMENU_LIST_CLASS));
         assert.equal(this.overflowMenu.$items().length, 0);
         assert.ok(this.overflowMenu.$popup().dxPopup('instance'));
     });
@@ -161,7 +161,7 @@ QUnit.module('render with popup', moduleConfig, () => {
 
         this.instance.option();
         this.overflowMenu.click();
-        assert.ok($(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS} ${RTL_SELECTOR}`).length > 0, 'menu is in RTL mode');
+        assert.ok($(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS} ${RTL_SELECTOR}`).length > 0, 'menu is in RTL mode');
     });
 
     QUnit.test('correct wrapper classes should be set', function(assert) {
@@ -169,8 +169,8 @@ QUnit.module('render with popup', moduleConfig, () => {
             animation: {
                 show: {
                     start: function() {
-                        const $wrapper = $(`.${DROP_DOWN_MENU_POPUP_WRAPPER_CLASS}`);
-                        assert.strictEqual($wrapper.hasClass(DROP_DOWN_MENU_POPUP_CLASS), true, 'popup class added');
+                        const $wrapper = $(`.${DROPDOWNMENU_POPUP_WRAPPER_CLASS}`);
+                        assert.strictEqual($wrapper.hasClass(DROPDOWNMENU_POPUP_CLASS), true, 'popup class added');
                     }
                 }
             }

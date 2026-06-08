@@ -10,6 +10,7 @@ import type { ActionConfig } from '@ts/core/widget/component';
 import type { SupportedKeys } from '@ts/core/widget/widget';
 import type { ItemRenderInfo, ItemTemplate } from '@ts/ui/collection/collection_widget.base';
 import { ListBase } from '@ts/ui/list/list.base';
+import { MENU_CLASS } from '@ts/ui/toolbar/constants';
 import {
   enterKeyHandler,
   focusItemWidget,
@@ -22,7 +23,7 @@ import {
   closeItemWidget,
   getItemFocusTarget,
   isItemWidgetOpened,
-  isTextInputTarget,
+  wrapSpaceKey,
 } from '@ts/ui/toolbar/toolbar.utils';
 
 export const TOOLBAR_MENU_ACTION_CLASS = 'dx-toolbar-menu-action';
@@ -167,21 +168,12 @@ export default class ToolbarMenuList extends ListBase {
   _supportedKeys(): SupportedKeys {
     const keys = super._supportedKeys();
 
-    if (!this.option('focusStateEnabled')) {
+    const { focusStateEnabled } = this.option();
+    if (!focusStateEnabled) {
       return keys;
     }
 
-    // Guard: keyboard.on is registered with focusTarget=null so it fires for all keydown
-    // events inside the menu list, including those from <input>/<textarea> elements.
-    const originalSpace = keys.space;
-    if (originalSpace) {
-      keys.space = function(this: ToolbarMenuList, e: DxEvent<KeyboardEvent>): void {
-        if (isTextInputTarget(e.target as HTMLElement)) {
-          return;
-        }
-        originalSpace.call(this, e);
-      };
-    }
+    wrapSpaceKey(keys);
 
     delete keys.leftArrow;
     delete keys.rightArrow;
@@ -196,7 +188,8 @@ export default class ToolbarMenuList extends ListBase {
   _attachKeyboardEvents(): void {
     this._detachKeyboardEvents();
 
-    if (!this.option('focusStateEnabled')) {
+    const { focusStateEnabled } = this.option();
+    if (!focusStateEnabled) {
       super._attachKeyboardEvents();
       return;
     }
@@ -208,7 +201,10 @@ export default class ToolbarMenuList extends ListBase {
       getItemFocusTarget: ($item): dxElementWrapper => this._getItemFocusTarget($item),
       onEscapeKey: (): void => this._onEscapePress?.(),
       onTabKey: (): void => this._onTabPress?.(),
-      isEnabled: (): boolean => !!this.option('focusStateEnabled'),
+      isEnabled: (): boolean => {
+        const { focusStateEnabled: enabled } = this.option();
+        return !!enabled;
+      },
     });
     this._navigator.attach();
   }
@@ -261,7 +257,7 @@ export default class ToolbarMenuList extends ListBase {
       return;
     }
 
-    const $menu = $focused.find('.dx-menu').first();
+    const $menu = $focused.find(`.${MENU_CLASS}`).first();
     if ($menu.length) {
       e.preventDefault();
       e.stopPropagation();
@@ -271,7 +267,8 @@ export default class ToolbarMenuList extends ListBase {
 
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   _moveFocus(location: string): boolean | undefined | void {
-    if (!this.option('focusStateEnabled')) {
+    const { focusStateEnabled } = this.option();
+    if (!focusStateEnabled) {
       return super._moveFocus(location);
     }
 
