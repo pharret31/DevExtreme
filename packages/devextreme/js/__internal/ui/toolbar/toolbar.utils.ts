@@ -63,22 +63,6 @@ function getItemWidget($item: dxElementWrapper): Widget | undefined {
   return $widget.length ? getItemInstance($widget) : undefined;
 }
 
-// Maps a widget instance to its focus target using the rules shared by getItemFocusTarget
-// and toggleItemFocusableElementTabIndex: dxDropDownButton drills into the inner button
-// group; every other widget defaults to its declared `_focusTarget()` (or, as a fallback,
-// the widget root element). The dx-menu / dx-texteditor item-level overrides stay in
-// getItemFocusTarget where the item container is also in scope.
-function resolveWidgetFocusTarget(
-  itemInstance: Widget,
-  widgetName: string,
-): dxElementWrapper | undefined {
-  const $base = itemInstance._focusTarget?.();
-  if (widgetName === 'dxDropDownButton') {
-    return $base?.find(`.${BUTTON_GROUP_CLASS}`);
-  }
-  return $base ?? $(itemInstance.element());
-}
-
 export function isTextInputTarget(target: HTMLElement): boolean {
   const tagName = target.tagName.toLowerCase();
 
@@ -175,7 +159,11 @@ export function getItemFocusTarget($item: dxElementWrapper): dxElementWrapper | 
   if ($widget.hasClass(MENU_CLASS)) return $item;
   if ($widget.hasClass(TEXTEDITOR_CLASS)) return $(itemInstance.element());
 
-  return resolveWidgetFocusTarget(itemInstance, getWidgetName($widget));
+  const $base = itemInstance._focusTarget?.();
+  if (getWidgetName($widget) === 'dxDropDownButton') {
+    return $base?.find(`.${BUTTON_GROUP_CLASS}`);
+  }
+  return $base ?? $(itemInstance.element());
 }
 
 export function getPlainItemFocusTargets($item: dxElementWrapper): dxElementWrapper {
@@ -245,7 +233,10 @@ export function toggleItemFocusableElementTabIndex(
         return;
       }
 
-      const $focusTarget = resolveWidgetFocusTarget(itemInstance, widget);
+      const $base = itemInstance._focusTarget?.();
+      const $focusTarget = widget === 'dxDropDownButton'
+        ? $base?.find(`.${BUTTON_GROUP_CLASS}`)
+        : ($base ?? $(itemInstance.element()));
 
       const tabIndex = itemData.options?.tabIndex;
       $focusTarget?.attr('tabIndex', isItemNotFocusable ? -1 : (tabIndex ?? 0));
