@@ -239,7 +239,7 @@ export function toggleItemFocusableElementTabIndex(
 
   const { widget } = itemData;
 
-  if (widget && (TOOLBAR_ITEMS as readonly string[]).includes(widget)) {
+  if (widget && TOOLBAR_ITEMS.includes(widget)) {
     const $widget = $item.find(widget.toLowerCase().replace('dx', '.dx-'));
     if ($widget.length) {
       const itemInstance = getItemInstance($widget);
