@@ -3,8 +3,8 @@ import $ from '@js/core/renderer';
 import type { DxEvent } from '@js/events';
 import type { Item } from '@js/ui/toolbar';
 import { getPublicElement } from '@ts/core/m_element';
-import type { SupportedKeys } from '@ts/core/widget/widget';
-import { DISABLED_STATE_CLASS, WIDGET_CLASS } from '@ts/core/widget/widget';
+import type Widget from '@ts/core/widget/widget';
+import { DISABLED_STATE_CLASS, type SupportedKeys, WIDGET_CLASS } from '@ts/core/widget/widget';
 import type { KeyboardKeyDownEvent } from '@ts/events/core/m_keyboard_processor';
 import { BUTTON_GROUP_CLASS } from '@ts/ui/button_group';
 import type { ListBase } from '@ts/ui/list/list.base';
@@ -21,40 +21,30 @@ import {
 } from './constants';
 import type Toolbar from './toolbar';
 
-// Structural shape of a widget instance attached to a toolbar item. Mirrors only the
-// subset of Widget we call at runtime: a typed `option()` (Widget.option uses a
-// `(...args): TProperties` signature that does not survive a narrow `option('opened')`
-// read), `element()`, and optional focus hooks.
-interface ToolbarItemWidgetInstance {
-  option: (() => Record<string, unknown>)
-  & ((name: string) => unknown)
-  & ((name: string, value: unknown) => void);
-  element: () => Element;
-  _focusTarget?: () => dxElementWrapper | undefined;
-  _toggleFocusClass?: (isFocused: boolean, $element?: dxElementWrapper) => void;
+// All `@ts-expect-error` directives below paper over two known core-typing gaps; remove
+// each one as soon as the underlying core type is corrected:
+//   1. `dxElementWrapper.data()` (no-arg) is missing from core/renderer.d.ts — only the
+//      `data(key, value?)` overload is declared, while at runtime jQuery returns the full
+//      data record.
+//   2. `Widget.option(...args): TProperties` (core/widget/component.ts) does not narrow on
+//      single-key reads, and the base `WidgetProperties` does not declare runtime options
+//      contributed by descendants such as dxDropDownButton/dxMenu (e.g. `opened`).
+function getItemElementData($element: dxElementWrapper): Record<string, unknown> {
+  // @ts-expect-error – dxElementWrapper has no zero-arg `data()` overload (core typing gap).
+  const data = $element.data() as unknown;
+  return (data ?? {}) as Record<string, unknown>;
 }
 
-interface ItemElementData {
-  [widgetName: string]: unknown;
-  dxComponents?: string[];
-}
-
-// dxElementWrapper.data(key) is the only declared overload; jQuery's `.data()` without
-// arguments returns the full data record. Isolate the cast here so callers stay typed.
-function getItemElementData($element: dxElementWrapper): ItemElementData {
-  const data = ($element as unknown as { data: () => unknown }).data();
-  return (data ?? {}) as ItemElementData;
-}
-
-function isToolbarItemWidgetInstance(value: unknown): value is ToolbarItemWidgetInstance {
+function isToolbarItemWidgetInstance(value: unknown): value is Widget {
   return typeof value === 'object'
     && value !== null
     && typeof (value as { option?: unknown }).option === 'function';
 }
 
-const getItemInstance = ($element: dxElementWrapper): ToolbarItemWidgetInstance | undefined => {
+const getItemInstance = ($element: dxElementWrapper): Widget | undefined => {
   const itemData = getItemElementData($element);
-  const widgetName = itemData.dxComponents?.[0];
+  const dxComponents = itemData.dxComponents as string[] | undefined;
+  const widgetName = dxComponents?.[0];
   if (!widgetName) {
     return undefined;
   }
@@ -63,11 +53,12 @@ const getItemInstance = ($element: dxElementWrapper): ToolbarItemWidgetInstance 
   return isToolbarItemWidgetInstance(instance) ? instance : undefined;
 };
 
-const getWidgetName = ($element: dxElementWrapper): string => (
-  getItemElementData($element).dxComponents?.[0] ?? ''
-);
+const getWidgetName = ($element: dxElementWrapper): string => {
+  const dxComponents = getItemElementData($element).dxComponents as string[] | undefined;
+  return dxComponents?.[0] ?? '';
+};
 
-function getItemWidget($item: dxElementWrapper): ToolbarItemWidgetInstance | undefined {
+function getItemWidget($item: dxElementWrapper): Widget | undefined {
   const $widget = $item.find(TOOLBAR_WIDGETS_SELECTOR).first();
   return $widget.length ? getItemInstance($widget) : undefined;
 }
@@ -78,7 +69,7 @@ function getItemWidget($item: dxElementWrapper): ToolbarItemWidgetInstance | und
 // the widget root element). The dx-menu / dx-texteditor item-level overrides stay in
 // getItemFocusTarget where the item container is also in scope.
 function resolveWidgetFocusTarget(
-  itemInstance: ToolbarItemWidgetInstance,
+  itemInstance: Widget,
   widgetName: string,
 ): dxElementWrapper | undefined {
   const $base = itemInstance._focusTarget?.();
@@ -132,6 +123,9 @@ export function closeItemWidget($item: dxElementWrapper): boolean {
     return false;
   }
 
+  // @ts-expect-error – WidgetProperties does not declare `opened` (added by descendants
+  // like dxDropDownButton/dxMenu); core's Widget.option(...args): TProperties also does
+  // not narrow on single-key reads.
   const { opened } = itemInstance.option();
   if (!opened) {
     return false;
@@ -153,6 +147,9 @@ export function isItemDisabled($item: dxElementWrapper, widgetDisabled: boolean)
 }
 
 export function isItemWidgetOpened($item: dxElementWrapper): boolean {
+  // @ts-expect-error – WidgetProperties does not declare `opened` (added by descendants
+  // like dxDropDownButton/dxMenu); core's Widget.option(...args): TProperties also does
+  // not narrow on single-key reads.
   return !!getItemWidget($item)?.option().opened;
 }
 
